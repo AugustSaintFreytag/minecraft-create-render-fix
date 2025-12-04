@@ -1,4 +1,4 @@
-package net.saint.createrenderfixer.mixin;
+package net.saint.createrenderfixer.mixin.createdeco;
 
 import java.util.function.Supplier;
 
@@ -6,17 +6,15 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
 
-import com.github.talrey.createdeco.api.Supports;
+import com.github.talrey.createdeco.api.Wedges;
 
-import net.minecraft.client.render.RenderLayer;
+import net.minecraft.client.renderer.RenderType;
 
-@Mixin(Supports.class)
-public class SupportsMixin {
+@Mixin(Wedges.class)
+public class WedgesMixin {
 
 	@ModifyArg(method = "build", at = @At(value = "INVOKE", target = "Lcom/tterrag/registrate/builders/BlockBuilder;addLayer(Ljava/util/function/Supplier;)Lcom/tterrag/registrate/builders/BlockBuilder;"), index = 0, remap = false)
-	private static Supplier<Supplier<net.minecraft.client.render.RenderLayer>> redirectAddLayer(
-			Supplier<?> original) {
-		return () -> () -> RenderLayer.getCutout();
+	private static Supplier<Supplier<RenderType>> redirectWedgeLayer(Supplier<?> original) {
+		return () -> () -> RenderType.cutout();
 	}
-
 }
