@@ -22,6 +22,8 @@ public final class ModConfig {
 
 	private static volatile boolean freezeDistantInstances = true;
 
+	private static volatile boolean freezeOccludedInstances = true;
+
 	private static volatile int freezeBlockDistance = 62; // 64 - 2 buffer
 
 	private static final Set<ResourceLocation> freezeBlacklist = ConcurrentHashMap.newKeySet();
@@ -34,6 +36,10 @@ public final class ModConfig {
 
 	public static boolean freezeDistantInstances() {
 		return freezeDistantInstances;
+	}
+
+	public static boolean freezeOccludedInstances() {
+		return freezeOccludedInstances;
 	}
 
 	public static int freezeBlockDistance() {
@@ -53,6 +59,12 @@ public final class ModConfig {
 	public static void setFreezeDistantInstances(boolean value) {
 		freezeDistantInstances = value;
 		Mod.LOGGER.info("Freezing distant instances set to {}", value ? "ENABLED" : "DISABLED");
+		save();
+	}
+
+	public static void setFreezeOccludedInstances(boolean value) {
+		freezeOccludedInstances = value;
+		Mod.LOGGER.info("Freezing occluded instances set to {}", value ? "ENABLED" : "DISABLED");
 		save();
 	}
 
@@ -91,6 +103,7 @@ public final class ModConfig {
 
 	public static String debugDescription() {
 		return "cacheDynamicInstances=" + cacheDynamicInstances + ", freezeDistantInstances=" + freezeDistantInstances
+				+ ", freezeOccludedInstances=" + freezeOccludedInstances
 				+ ", freezeDistanceBlocks=" + freezeBlockDistance + ", freezeBlacklist=" + freezeBlacklist;
 	}
 
@@ -106,13 +119,14 @@ public final class ModConfig {
 	}
 
 	private static ModConfigLoad.Data snapshot() {
-		return new ModConfigLoad.Data(cacheDynamicInstances, freezeDistantInstances, freezeBlockDistance,
+		return new ModConfigLoad.Data(cacheDynamicInstances, freezeDistantInstances, freezeOccludedInstances, freezeBlockDistance,
 				freezeBlacklist.stream().map(ResourceLocation::toString).toList());
 	}
 
 	private static void applyLoadedData(ModConfigLoad.Data data) {
 		cacheDynamicInstances = data.cacheDynamicInstances();
 		freezeDistantInstances = data.freezeDistantInstances();
+		freezeOccludedInstances = data.freezeOccludedInstances();
 		freezeBlockDistance = Math.max(0, data.freezeBlockDistance());
 
 		freezeBlacklist.clear();

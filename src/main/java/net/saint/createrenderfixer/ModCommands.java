@@ -40,8 +40,11 @@ public final class ModCommands {
 						.then(Commands.literal("freezeDistantInstances")
 								.then(Commands.argument("value", BoolArgumentType.bool())
 										.executes(ctx -> setBoolean(ctx, "freezeDistantInstances", ModConfig::setFreezeDistantInstances))))
-						.then(Commands.literal("freezeDistanceBlocks").then(
-								Commands.argument("blocks", IntegerArgumentType.integer(0)).executes(ModCommands::setFreezeDistance))))
+						.then(Commands.literal("freezeOccludedInstances")
+								.then(Commands.argument("value", BoolArgumentType.bool())
+										.executes(ctx -> setBoolean(ctx, "freezeOccludedInstances", ModConfig::setFreezeOccludedInstances))))
+						.then(Commands.literal("freezeBlockDistance").then(
+								Commands.argument("blocks", IntegerArgumentType.integer(0)).executes(ModCommands::setFreezeBlockDistance))))
 				.then(Commands.literal("blacklist")
 						.then(Commands.literal("add")
 								.then(Commands.argument("id", ResourceLocationArgument.id()).executes(ModCommands::addToBlacklist)))
@@ -63,7 +66,7 @@ public final class ModCommands {
 		return com.mojang.brigadier.Command.SINGLE_SUCCESS;
 	}
 
-	private static int setFreezeDistance(CommandContext<CommandSourceStack> ctx) {
+	private static int setFreezeBlockDistance(CommandContext<CommandSourceStack> ctx) {
 		int blocks = IntegerArgumentType.getInteger(ctx, "blocks");
 		ModConfig.setFreezeBlockDistance(blocks);
 		ctx.getSource().sendSuccess(() -> Component.literal("freezeBlockDistance set to " + blocks), false);
