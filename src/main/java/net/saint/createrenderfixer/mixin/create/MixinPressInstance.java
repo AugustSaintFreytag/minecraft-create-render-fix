@@ -70,7 +70,7 @@ public abstract class MixinPressInstance {
 
 	@Unique
 	private boolean crf$isFrozen() {
-		var freezeDistance = ModConfig.freezeDistanceBlocks();
+		var freezeDistance = ModConfig.freezeBlockDistance();
 
 		if (freezeDistance <= 0) {
 			return false;

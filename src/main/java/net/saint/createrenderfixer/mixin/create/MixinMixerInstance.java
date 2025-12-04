@@ -98,7 +98,7 @@ public abstract class MixinMixerInstance {
 
 	@Unique
 	private boolean crf$isFrozen() {
-		int freezeDistance = ModConfig.freezeDistanceBlocks();
+		int freezeDistance = ModConfig.freezeBlockDistance();
 
 		if (freezeDistance <= 0) {
 			return false;

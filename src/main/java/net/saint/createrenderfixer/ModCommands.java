@@ -56,7 +56,7 @@ public final class ModCommands {
 
 	private static int setFreezeDistance(CommandContext<CommandSourceStack> ctx) {
 		int blocks = IntegerArgumentType.getInteger(ctx, "blocks");
-		ModConfig.setFreezeDistanceBlocks(blocks);
+		ModConfig.setFreezeBlockDistance(blocks);
 		ctx.getSource().sendSuccess(() -> Component.literal("freezeDistanceBlocks set to " + blocks), false);
 		return com.mojang.brigadier.Command.SINGLE_SUCCESS;
 	}
