@@ -18,6 +18,8 @@ public final class ModConfig {
 
 	// Properties
 
+	private static volatile boolean forceDisableRateLimiting = false;
+
 	private static volatile boolean cacheDynamicInstances = true;
 
 	private static volatile boolean freezeDistantInstances = true;
@@ -29,6 +31,10 @@ public final class ModConfig {
 	private static final Set<ResourceLocation> freezeBlacklist = ConcurrentHashMap.newKeySet();
 
 	// Accessors
+
+	public static boolean forceDisableRateLimiting() {
+		return forceDisableRateLimiting;
+	}
 
 	public static boolean cacheDynamicInstances() {
 		return cacheDynamicInstances;
@@ -48,6 +54,12 @@ public final class ModConfig {
 
 	public static Set<ResourceLocation> freezeBlacklist() {
 		return Collections.unmodifiableSet(freezeBlacklist);
+	}
+
+	public static void setForceDisableRateLimiting(boolean value) {
+		forceDisableRateLimiting = value;
+		Mod.LOGGER.info("Force disable rate limiting set to {}", value ? "ENABLED" : "DISABLED");
+		save();
 	}
 
 	public static void setCacheDynamicInstances(boolean value) {
@@ -102,8 +114,8 @@ public final class ModConfig {
 	// Debug
 
 	public static String debugDescription() {
-		return "cacheDynamicInstances=" + cacheDynamicInstances + ", freezeDistantInstances=" + freezeDistantInstances
-				+ ", freezeOccludedInstances=" + freezeOccludedInstances
+		return "forceDisableRateLimiting=" + forceDisableRateLimiting + ", cacheDynamicInstances=" + cacheDynamicInstances
+				+ ", freezeDistantInstances=" + freezeDistantInstances + ", freezeOccludedInstances=" + freezeOccludedInstances
 				+ ", freezeDistanceBlocks=" + freezeBlockDistance + ", freezeBlacklist=" + freezeBlacklist;
 	}
 

@@ -8,6 +8,7 @@
 		"LevelRendererAccessor",
 		"RenderChunkInfoAccessor",
 		"flw.InstanceManagerMixin",
+		"flw.BandedPrimeLimiterMixin",
 		"create.MixerInstanceMixin",
 		"create.PressInstanceMixin",
 		"createdeco.SupportsMixin",
