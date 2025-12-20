@@ -12,7 +12,7 @@ import net.saint.createrenderfixer.ModConfig;
 @Mixin(BandedPrimeLimiter.class)
 public abstract class BandedPrimeLimiterMixin {
 
-	@Inject(method = "shouldUpdate", at = @At("HEAD"), cancellable = true)
+	@Inject(method = "shouldUpdate", at = @At("HEAD"), cancellable = true, remap = false)
 	private void crf$shouldUpdate(int dX, int dY, int dZ, CallbackInfoReturnable<Boolean> callbackInfo) {
 		if (ModConfig.forceDisableRateLimiting()) {
 			callbackInfo.setReturnValue(true);
