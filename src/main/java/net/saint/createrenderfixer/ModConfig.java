@@ -127,6 +127,7 @@ public final class ModConfig {
 	}
 
 	private static void save() {
+		Mod.reloadConfigProperties();
 		ModConfigLoad.save(snapshot());
 	}
 
@@ -142,6 +143,7 @@ public final class ModConfig {
 		freezeBlockDistance = Math.max(0, data.freezeBlockDistance());
 
 		freezeBlacklist.clear();
+
 		for (var id : data.freezeBlacklist()) {
 			try {
 				freezeBlacklist.add(new ResourceLocation(id));
