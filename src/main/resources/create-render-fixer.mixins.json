@@ -9,6 +9,8 @@
 		"RenderChunkInfoAccessor",
 		"flw.InstanceManagerMixin",
 		"flw.BandedPrimeLimiterMixin",
+		"create.BearingInstanceMixin",
+		"create.HandCrankInstanceMixin",
 		"create.MixerInstanceMixin",
 		"create.PressInstanceMixin",
 		"createdeco.SupportsMixin",
