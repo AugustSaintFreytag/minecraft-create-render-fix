@@ -14,7 +14,7 @@ import com.simibubi.create.content.kinetics.crank.HandCrankInstance;
 import com.simibubi.create.foundation.utility.AnimationTickHolder;
 
 import net.minecraft.core.Direction;
-import net.saint.createrenderfixer.Mod;
+import net.saint.createrenderfixer.ModConfig;
 import net.saint.createrenderfixer.mixin.BlockEntityInstanceAccessor;
 
 @Mixin(HandCrankInstance.class)
@@ -32,7 +32,7 @@ public abstract class HandCrankInstanceMixin {
 
 	@Inject(method = "beginFrame", at = @At("HEAD"), cancellable = true, remap = false)
 	private void crf$cacheAndFreeze(CallbackInfo callbackInfo) {
-		if (!Mod.configProperties.cacheDynamicInstances) {
+		if (!ModConfig.cacheDynamicInstances()) {
 			return;
 		}
 

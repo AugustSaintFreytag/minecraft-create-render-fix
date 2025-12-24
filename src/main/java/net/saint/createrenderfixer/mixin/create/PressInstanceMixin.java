@@ -12,7 +12,7 @@ import com.jozufozu.flywheel.core.materials.oriented.OrientedData;
 import com.simibubi.create.content.kinetics.press.MechanicalPressBlockEntity;
 import com.simibubi.create.content.kinetics.press.PressInstance;
 
-import net.saint.createrenderfixer.Mod;
+import net.saint.createrenderfixer.ModConfig;
 import net.saint.createrenderfixer.mixin.BlockEntityInstanceAccessor;
 
 @Mixin(PressInstance.class)
@@ -34,7 +34,7 @@ public abstract class PressInstanceMixin {
 
 	@Inject(method = "beginFrame", at = @At("HEAD"), cancellable = true, remap = false)
 	private void crf$cacheAndFreeze(CallbackInfo callbackInfo) {
-		if (!Mod.configProperties.cacheDynamicInstances) {
+		if (!ModConfig.cacheDynamicInstances()) {
 			return;
 		}
 

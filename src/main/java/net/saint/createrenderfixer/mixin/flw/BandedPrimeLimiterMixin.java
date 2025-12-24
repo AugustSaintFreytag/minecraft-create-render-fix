@@ -7,14 +7,14 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import com.jozufozu.flywheel.backend.instancing.ratelimit.BandedPrimeLimiter;
 
-import net.saint.createrenderfixer.Mod;
+import net.saint.createrenderfixer.ModConfig;
 
 @Mixin(BandedPrimeLimiter.class)
 public abstract class BandedPrimeLimiterMixin {
 
 	@Inject(method = "shouldUpdate", at = @At("HEAD"), cancellable = true, remap = false)
 	private void crf$shouldUpdate(int dX, int dY, int dZ, CallbackInfoReturnable<Boolean> callbackInfo) {
-		if (Mod.configProperties.forceDisableRateLimiting) {
+		if (ModConfig.forceDisableRateLimiting()) {
 			callbackInfo.setReturnValue(true);
 		}
 	}

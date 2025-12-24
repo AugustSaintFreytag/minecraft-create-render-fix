@@ -127,7 +127,6 @@ public final class ModConfig {
 	}
 
 	private static void save() {
-		Mod.reloadConfigProperties();
 		ModConfigLoad.save(snapshot());
 	}
 

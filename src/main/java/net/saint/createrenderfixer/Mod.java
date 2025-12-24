@@ -6,7 +6,6 @@ import org.slf4j.LoggerFactory;
 import com.jozufozu.flywheel.api.instance.DynamicInstance;
 
 import net.fabricmc.api.ModInitializer;
-import net.saint.createrenderfixer.data.ConfigProperties;
 import net.saint.createrenderfixer.data.InstanceBlacklistManager;
 
 public class Mod implements ModInitializer {
@@ -21,7 +20,6 @@ public class Mod implements ModInitializer {
 
 	// State
 
-	public static ConfigProperties configProperties = ConfigProperties.fromCurrentConfig();
 
 	// Init
 
@@ -35,7 +33,6 @@ public class Mod implements ModInitializer {
 
 	public static void reloadConfigProperties() {
 		synchronized (Mod.class) {
-			configProperties = ConfigProperties.fromCurrentConfig();
 			InstanceBlacklistManager.clear();
 		}
 	}
