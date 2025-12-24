@@ -59,13 +59,22 @@ dependencies {
 	modImplementation("net.fabricmc.fabric-api:fabric-api:$fabric_api_version")
 
 	// Mod Menu
-	modLocalRuntime("com.terraformersmc:modmenu:$modmenu_version")
+	modCompileOnly("com.terraformersmc:modmenu:$modmenu_version")
 
+	// Sodium
+	modCompileOnly("maven.modrinth:sodium:${project.sodium_version}")
+
+	// Distant Horizons
+	modCompileOnly("maven.modrinth:distanthorizonsapi:${project.distant_horizons_api_version}")
+	modCompileOnly("maven.modrinth:distanthorizons:${project.distant_horizons_version}")
 
 	// Create
-	modImplementation("com.simibubi.create:create-fabric-$minecraft_version:$create_version")
+	modCompileOnly("com.simibubi.create:create-fabric-$minecraft_version:$create_version")
+
 	// Create: Deco
-	modImplementation("maven.modrinth:create-deco:${project.create_deco_version}")
+	modCompileOnly("maven.modrinth:create-deco:${project.create_deco_version}")
+
+	// TODO: Add Sodium to deps, ask Codex to check entity render distance via decompile, implement limiter of render distance - 2 chunks.
 	
 }
 
