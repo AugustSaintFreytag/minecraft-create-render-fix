@@ -53,6 +53,9 @@ public final class ModCommands {
 										ctx -> setBoolean(ctx, "freezeOccludedInstances", ModConfig::setFreezeOccludedInstances))))
 						.then(Commands.literal("freezeBlockDistance").then(
 								Commands.argument("blocks", IntegerArgumentType.integer(0)).executes(ModCommands::setFreezeBlockDistance)))
+						.then(Commands.literal("limitEntityRenderDistance")
+								.then(Commands.argument("value", BoolArgumentType.bool()).executes(
+										ctx -> setBoolean(ctx, "limitEntityRenderDistance", ModConfig::setLimitEntityRenderDistance))))
 						.then(Commands.literal("entityLODDistanceOffset")
 								.then(Commands.argument("value", IntegerArgumentType.integer())
 										.executes(ModCommands::setEntityLODDistanceOffset))))

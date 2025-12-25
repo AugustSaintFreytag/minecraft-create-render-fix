@@ -28,7 +28,7 @@ public abstract class ContraptionRenderInfoMixin {
 
 	@Inject(method = "beginFrame", at = @At("TAIL"))
 	private void crf$applyEntityDistanceCulling(BeginFrameEvent event, CallbackInfo callbackInfo) {
-		if (!visible) {
+		if (!ModConfig.limitEntityRenderDistance() || !visible) {
 			return;
 		}
 
@@ -38,21 +38,9 @@ public abstract class ContraptionRenderInfoMixin {
 			return;
 		}
 
-		var cameraPos = event.getCameraPos();
-		var dx = entity.getX() - cameraPos.x;
-		var dy = entity.getY() - cameraPos.y;
-		var dz = entity.getZ() - cameraPos.z;
+		var position = event.getCameraPos();
+		var shouldRenderContraption = EntityDistanceUtil.shouldRenderAtPosition(entity, position);
 
-		var renderDistanceBlocks = EntityDistanceUtil.getMaxUnboundedDistanceForWorld();
-		var deferredOffset = 0.28125 * renderDistanceBlocks + 52;
-
-		var offsetSq = Math.pow(deferredOffset + ModConfig.entityLODDistanceOffset(), 2);
-		var distanceSq = (dx * dx + dy * dy + dz * dz) + offsetSq;
-
-		if (EntityDistanceUtil.shouldRenderAtSqrDistance(entity, distanceSq)) {
-			return;
-		}
-
-		visible = false;
+		visible = shouldRenderContraption;
 	}
 }

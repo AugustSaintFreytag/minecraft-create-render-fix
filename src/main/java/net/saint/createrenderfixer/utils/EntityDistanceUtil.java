@@ -2,10 +2,29 @@ package net.saint.createrenderfixer.utils;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.phys.Vec3;
+import net.saint.createrenderfixer.ModConfig;
 
 public final class EntityDistanceUtil {
 
 	private static final double MAX_DISTANCE_FACTOR = 64.0;
+
+	public static boolean shouldRenderAtPosition(Entity entity, Vec3 position) {
+		var entityPosition = entity.blockPosition();
+
+		var dx = entityPosition.getX() - (int) position.x;
+		var dy = entityPosition.getY() - (int) position.y;
+		var dz = entityPosition.getZ() - (int) position.z;
+
+		var renderDistanceBlocks = EntityDistanceUtil.getMaxUnboundedDistanceForWorld();
+		var deferredOffset = 0.28125 * renderDistanceBlocks + 52;
+
+		var offsetSq = deferredOffset + ModConfig.entityLODDistanceOffset();
+		var distanceSq = (dx * dx + dy * dy + dz * dz) + offsetSq;
+		var shouldRender = shouldRenderAtSqrDistance(entity, distanceSq);
+
+		return shouldRender;
+	}
 
 	public static boolean shouldRenderAtSqrDistance(Entity entity, double distance) {
 		var maxDistance = getMaxDistanceSqr(entity);

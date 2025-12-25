@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -84,39 +85,42 @@ public final class ContraptionBlockRegistry {
 			return;
 		}
 
-		if (CONTRAPTIONS.containsKey(entity.getUUID())) {
+		var contraptionIdentifier = entity.getUUID();
+
+		if (CONTRAPTIONS.containsKey(contraptionIdentifier)) {
 			return;
 		}
 
-		var dimensionId = serverLevel.dimension().location().toString();
-		var entry = new ContraptionEntry(dimensionId);
-		var blockPosition = contraption.anchor;
+		var dimensionIdentifier = serverLevel.dimension().location().toString();
+		var entry = new ContraptionEntry(dimensionIdentifier);
+		var anchorPosition = contraption.anchor;
+
+		if (anchorPosition == null) {
+			Mod.LOGGER.warn("Contraption '{}' has no anchor block position and can not be registered.", contraptionIdentifier);
+
+			return;
+		}
 
 		contraption.getBlocks().forEach((localPosition, info) -> {
-
-			if (blockPosition == null) {
-				Mod.LOGGER.warn("Contraption '{}' has no anchor block position and can not be registered.", entity.getUUID());
-				return;
-			}
-
-			var worldPosition = localPosition.offset(blockPosition);
-
-			if (worldPosition == null) {
-				Mod.LOGGER.warn("Contraption '{}' has invalid block position and can not be registered.", entity.getUUID());
-				return;
-			}
-
-			var biomeId = resolveBiomeId(serverLevel, worldPosition);
-			var chunkPosition = new ChunkPos(blockPosition);
+			var worldPosition = localPosition.offset(anchorPosition);
+			var biomeIdentifier = resolveBiomeId(serverLevel, worldPosition);
+			var chunkPosition = new ChunkPos(worldPosition);
 			var chunkKey = chunkPosition.toLong();
 
-			entry.chunks.computeIfAbsent(chunkKey, key -> new ArrayList<>()).add(new BlockPosState(worldPosition, info.state(), biomeId));
+			entry.chunks.computeIfAbsent(chunkKey, key -> new ArrayList<>())
+					.add(new BlockPosState(worldPosition, info.state(), biomeIdentifier));
 		});
 
-		CONTRAPTIONS.put(entity.getUUID(), entry);
-		BY_DIMENSION.computeIfAbsent(dimensionId, key -> new ConcurrentHashMap<>()).putAll(entry.chunks);
+		CONTRAPTIONS.put(contraptionIdentifier, entry);
 
-		notifyChunksDirty(dimensionId, entry.chunks.keySet());
+		var dimensionChunkMap = BY_DIMENSION.computeIfAbsent(dimensionIdentifier, key -> new ConcurrentHashMap<>());
+
+		for (var chunkEntry : entry.chunks.entrySet()) {
+			var combinedList = dimensionChunkMap.computeIfAbsent(chunkEntry.getKey(), key -> createSharedChunkList());
+			combinedList.addAll(chunkEntry.getValue());
+		}
+
+		notifyChunksDirty(dimensionIdentifier, entry.chunks.keySet());
 	}
 
 	public static void unregister(UUID contraptionId) {
@@ -132,8 +136,18 @@ public final class ContraptionBlockRegistry {
 			return;
 		}
 
-		for (var chunkKey : removed.chunks.keySet()) {
-			chunkMap.remove(chunkKey);
+		for (var chunkEntry : removed.chunks.entrySet()) {
+			var combinedList = chunkMap.get(chunkEntry.getKey());
+
+			if (combinedList == null) {
+				continue;
+			}
+
+			combinedList.removeAll(chunkEntry.getValue());
+
+			if (combinedList.isEmpty()) {
+				chunkMap.remove(chunkEntry.getKey(), combinedList);
+			}
 		}
 
 		notifyChunksDirty(removed.dimensionId, removed.chunks.keySet());
@@ -229,7 +243,7 @@ public final class ContraptionBlockRegistry {
 			var chunkMap = new ConcurrentHashMap<Long, List<BlockPosState>>();
 
 			for (var chunkEntry : entry.getValue().entrySet()) {
-				var list = new ArrayList<BlockPosState>();
+				var list = createSharedChunkList();
 				for (var block : chunkEntry.getValue()) {
 					list.add(new BlockPosState(new BlockPos(block.x(), block.y(), block.z()), block.state(), block.biomeId()));
 				}
@@ -278,6 +292,7 @@ public final class ContraptionBlockRegistry {
 				return entry.getValue();
 			}
 		}
+
 		return null;
 	}
 
@@ -287,6 +302,7 @@ public final class ContraptionBlockRegistry {
 		}
 
 		Holder<Biome> biome = level.getBiome(pos);
+
 		return biome.unwrapKey().map(key -> key.location().toString()).orElse("minecraft:plains");
 	}
 
@@ -309,5 +325,9 @@ public final class ContraptionBlockRegistry {
 		}
 
 		return null;
+	}
+
+	private static List<BlockPosState> createSharedChunkList() {
+		return new CopyOnWriteArrayList<>();
 	}
 }

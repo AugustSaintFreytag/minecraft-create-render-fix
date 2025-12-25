@@ -28,6 +28,8 @@ public final class ModConfig {
 
 	private static volatile int freezeDistantInstancesRange = 62;
 
+	private static volatile boolean limitEntityRenderDistance = true;
+
 	private static volatile int entityLODDistanceOffset = 32;
 
 	private static final Set<ResourceLocation> freezeBlacklist = ConcurrentHashMap.newKeySet();
@@ -56,6 +58,10 @@ public final class ModConfig {
 
 	public static Set<ResourceLocation> freezeBlacklist() {
 		return Collections.unmodifiableSet(freezeBlacklist);
+	}
+
+	public static boolean limitEntityRenderDistance() {
+		return limitEntityRenderDistance;
 	}
 
 	public static int entityLODDistanceOffset() {
@@ -117,6 +123,12 @@ public final class ModConfig {
 		return id != null && freezeBlacklist.contains(id);
 	}
 
+	public static void setLimitEntityRenderDistance(boolean value) {
+		limitEntityRenderDistance = value;
+		Mod.LOGGER.info("Entity render distance limiting set to {}", value ? "ENABLED" : "DISABLED");
+		save();
+	}
+
 	public static void setEntityLODDistanceOffset(int value) {
 		entityLODDistanceOffset = value;
 		Mod.LOGGER.info("Entity distance LOD offset set to {}", value);
@@ -129,7 +141,7 @@ public final class ModConfig {
 		return "forceDisableRateLimiting=" + forceDisableRateLimiting + ", cacheDynamicInstances=" + cacheDynamicInstances
 				+ ", freezeDistantInstances=" + freezeDistantInstances + ", freezeOccludedInstances=" + freezeOccludedInstances
 				+ ", freezeDistanceBlocks=" + freezeDistantInstancesRange + ", freezeBlacklist=" + freezeBlacklist
-				+ ", matchEntityDistanceWithLODs=" + entityLODDistanceOffset;
+				+ ", limitEntityRenderDistance=" + limitEntityRenderDistance + ", entityLODDistanceOffset=" + entityLODDistanceOffset;
 	}
 
 	// Persistence
