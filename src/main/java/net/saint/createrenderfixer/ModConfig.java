@@ -26,7 +26,9 @@ public final class ModConfig {
 
 	private static volatile boolean freezeOccludedInstances = true;
 
-	private static volatile int freezeBlockDistance = 62; // 64 - 2 buffer
+	private static volatile int freezeDistantInstancesRange = 62;
+
+	private static volatile int entityLODDistanceOffset = 32;
 
 	private static final Set<ResourceLocation> freezeBlacklist = ConcurrentHashMap.newKeySet();
 
@@ -48,12 +50,16 @@ public final class ModConfig {
 		return freezeOccludedInstances;
 	}
 
-	public static int freezeBlockDistance() {
-		return freezeBlockDistance;
+	public static int freezeDistantInstancesRange() {
+		return freezeDistantInstancesRange;
 	}
 
 	public static Set<ResourceLocation> freezeBlacklist() {
 		return Collections.unmodifiableSet(freezeBlacklist);
+	}
+
+	public static int entityLODDistanceOffset() {
+		return entityLODDistanceOffset;
 	}
 
 	public static void setForceDisableRateLimiting(boolean value) {
@@ -80,9 +86,9 @@ public final class ModConfig {
 		save();
 	}
 
-	public static void setFreezeBlockDistance(int blocks) {
-		freezeBlockDistance = Math.max(0, blocks);
-		Mod.LOGGER.info("Freeze distance set to {} blocks", freezeBlockDistance);
+	public static void setFreezeDistantInstancesRange(int blocks) {
+		freezeDistantInstancesRange = Math.max(0, blocks);
+		Mod.LOGGER.info("Freeze distance set to {} blocks", freezeDistantInstancesRange);
 		save();
 	}
 
@@ -111,12 +117,19 @@ public final class ModConfig {
 		return id != null && freezeBlacklist.contains(id);
 	}
 
+	public static void setEntityLODDistanceOffset(int value) {
+		entityLODDistanceOffset = value;
+		Mod.LOGGER.info("Entity distance LOD offset set to {}", value);
+		save();
+	}
+
 	// Debug
 
 	public static String debugDescription() {
 		return "forceDisableRateLimiting=" + forceDisableRateLimiting + ", cacheDynamicInstances=" + cacheDynamicInstances
 				+ ", freezeDistantInstances=" + freezeDistantInstances + ", freezeOccludedInstances=" + freezeOccludedInstances
-				+ ", freezeDistanceBlocks=" + freezeBlockDistance + ", freezeBlacklist=" + freezeBlacklist;
+				+ ", freezeDistanceBlocks=" + freezeDistantInstancesRange + ", freezeBlacklist=" + freezeBlacklist
+				+ ", matchEntityDistanceWithLODs=" + entityLODDistanceOffset;
 	}
 
 	// Persistence
@@ -131,7 +144,7 @@ public final class ModConfig {
 	}
 
 	private static ModConfigLoad.Data snapshot() {
-		return new ModConfigLoad.Data(cacheDynamicInstances, freezeDistantInstances, freezeOccludedInstances, freezeBlockDistance,
+		return new ModConfigLoad.Data(cacheDynamicInstances, freezeDistantInstances, freezeOccludedInstances, freezeDistantInstancesRange,
 				freezeBlacklist.stream().map(ResourceLocation::toString).toList());
 	}
 
@@ -139,7 +152,7 @@ public final class ModConfig {
 		cacheDynamicInstances = data.cacheDynamicInstances();
 		freezeDistantInstances = data.freezeDistantInstances();
 		freezeOccludedInstances = data.freezeOccludedInstances();
-		freezeBlockDistance = Math.max(0, data.freezeBlockDistance());
+		freezeDistantInstancesRange = Math.max(0, data.freezeBlockDistance());
 
 		freezeBlacklist.clear();
 

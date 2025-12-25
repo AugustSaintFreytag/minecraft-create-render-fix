@@ -15,7 +15,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 
 /**
- * Registers simple server-side commands to tweak runtime config flags.
+ * Registers server-side commands to modify config values.
  */
 public final class ModCommands {
 
@@ -32,21 +32,32 @@ public final class ModCommands {
 	}
 
 	private static LiteralArgumentBuilder<CommandSourceStack> buildRoot() {
-		return Commands.literal("create-rf").then(Commands.literal("list").executes(ModCommands::listFlags)).then(Commands.literal("set")
-				.then(Commands.literal("forceDisableRateLimiting")
-						.then(Commands.argument("value", BoolArgumentType.bool())
-								.executes(ctx -> setBoolean(ctx, "forceDisableRateLimiting", ModConfig::setForceDisableRateLimiting))))
-				.then(Commands.literal("cacheDynamicInstances")
-						.then(Commands.argument("value", BoolArgumentType.bool())
-								.executes(ctx -> setBoolean(ctx, "cacheDynamicInstances", ModConfig::setCacheDynamicInstances))))
-				.then(Commands.literal("freezeDistantInstances")
-						.then(Commands.argument("value", BoolArgumentType.bool())
-								.executes(ctx -> setBoolean(ctx, "freezeDistantInstances", ModConfig::setFreezeDistantInstances))))
-				.then(Commands.literal("freezeOccludedInstances")
-						.then(Commands.argument("value", BoolArgumentType.bool())
-								.executes(ctx -> setBoolean(ctx, "freezeOccludedInstances", ModConfig::setFreezeOccludedInstances))))
-				.then(Commands.literal("freezeBlockDistance")
-						.then(Commands.argument("blocks", IntegerArgumentType.integer(0)).executes(ModCommands::setFreezeBlockDistance))))
+		return Commands.literal("create-rf")
+
+				// List
+				.then(Commands.literal("list").executes(ModCommands::listFlags))
+
+				// Set
+				.then(Commands.literal("set")
+						.then(Commands.literal("forceDisableRateLimiting")
+								.then(Commands.argument("value", BoolArgumentType.bool()).executes(
+										ctx -> setBoolean(ctx, "forceDisableRateLimiting", ModConfig::setForceDisableRateLimiting))))
+						.then(Commands.literal("cacheDynamicInstances")
+								.then(Commands.argument("value", BoolArgumentType.bool())
+										.executes(ctx -> setBoolean(ctx, "cacheDynamicInstances", ModConfig::setCacheDynamicInstances))))
+						.then(Commands.literal("freezeDistantInstances")
+								.then(Commands.argument("value", BoolArgumentType.bool())
+										.executes(ctx -> setBoolean(ctx, "freezeDistantInstances", ModConfig::setFreezeDistantInstances))))
+						.then(Commands.literal("freezeOccludedInstances")
+								.then(Commands.argument("value", BoolArgumentType.bool()).executes(
+										ctx -> setBoolean(ctx, "freezeOccludedInstances", ModConfig::setFreezeOccludedInstances))))
+						.then(Commands.literal("freezeBlockDistance").then(
+								Commands.argument("blocks", IntegerArgumentType.integer(0)).executes(ModCommands::setFreezeBlockDistance)))
+						.then(Commands.literal("entityLODDistanceOffset")
+								.then(Commands.argument("value", IntegerArgumentType.integer())
+										.executes(ModCommands::setEntityLODDistanceOffset))))
+
+				// Blacklist
 				.then(Commands.literal("blacklist")
 						.then(Commands.literal("add")
 								.then(Commands.argument("id", ResourceLocationArgument.id()).executes(ModCommands::addToBlacklist)))
@@ -70,8 +81,15 @@ public final class ModCommands {
 
 	private static int setFreezeBlockDistance(CommandContext<CommandSourceStack> ctx) {
 		int blocks = IntegerArgumentType.getInteger(ctx, "blocks");
-		ModConfig.setFreezeBlockDistance(blocks);
+		ModConfig.setFreezeDistantInstancesRange(blocks);
 		ctx.getSource().sendSuccess(() -> Component.literal("freezeBlockDistance set to " + blocks), false);
+		return com.mojang.brigadier.Command.SINGLE_SUCCESS;
+	}
+
+	private static int setEntityLODDistanceOffset(CommandContext<CommandSourceStack> ctx) {
+		int value = IntegerArgumentType.getInteger(ctx, "value");
+		ModConfig.setEntityLODDistanceOffset(value);
+		ctx.getSource().sendSuccess(() -> Component.literal("entityLODDistanceOffset set to " + value), false);
 		return com.mojang.brigadier.Command.SINGLE_SUCCESS;
 	}
 
