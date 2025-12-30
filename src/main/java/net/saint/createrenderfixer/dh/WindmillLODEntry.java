@@ -13,6 +13,8 @@ public final class WindmillLODEntry {
 	private final String dimensionId;
 	private final BlockPos anchorPosition;
 	private final Direction.Axis rotationAxis;
+	private final float planeWidth;
+	private final float planeHeight;
 
 	private volatile float rotationSpeed;
 	private volatile float rotationAngle;
@@ -22,11 +24,13 @@ public final class WindmillLODEntry {
 	// Init
 
 	public WindmillLODEntry(UUID contraptionId, String dimensionId, BlockPos anchorPosition, Direction.Axis rotationAxis,
-			float rotationSpeed, float rotationAngle, long lastSynchronizationTick) {
+			float planeWidth, float planeHeight, float rotationSpeed, float rotationAngle, long lastSynchronizationTick) {
 		this.contraptionId = contraptionId;
 		this.dimensionId = dimensionId;
 		this.anchorPosition = anchorPosition;
 		this.rotationAxis = rotationAxis;
+		this.planeWidth = planeWidth;
+		this.planeHeight = planeHeight;
 		this.rotationSpeed = rotationSpeed;
 		this.rotationAngle = rotationAngle;
 		this.lastSynchronizationTick = lastSynchronizationTick;
@@ -49,6 +53,14 @@ public final class WindmillLODEntry {
 
 	public Direction.Axis rotationAxis() {
 		return rotationAxis;
+	}
+
+	public float planeWidth() {
+		return planeWidth;
+	}
+
+	public float planeHeight() {
+		return planeHeight;
 	}
 
 	public float rotationSpeed() {
@@ -88,7 +100,7 @@ public final class WindmillLODEntry {
 	// Persistence
 
 	public WindmillLODEntry createPersistenceSnapshot() {
-		return new WindmillLODEntry(contraptionId, dimensionId, anchorPosition, rotationAxis, rotationSpeed, rotationAngle,
-				lastSynchronizationTick);
+		return new WindmillLODEntry(contraptionId, dimensionId, anchorPosition, rotationAxis, planeWidth, planeHeight,
+				rotationSpeed, rotationAngle, lastSynchronizationTick);
 	}
 }
