@@ -19,7 +19,7 @@
 			"net.saint.createrenderfixer.Mod"
 		],
 		"client": [
-			"net.saint.createrenderfixer.client.WindmillLODClient"
+			"net.saint.createrenderfixer.ModClient"
 		]
 	},
 	"mixins": [

@@ -16,10 +16,12 @@ import com.seibel.distanthorizons.api.interfaces.render.IDhApiCustomRenderRegist
 import com.seibel.distanthorizons.api.interfaces.render.IDhApiRenderableBoxGroup;
 import com.seibel.distanthorizons.api.objects.math.DhApiVec3d;
 import com.seibel.distanthorizons.api.objects.render.DhApiRenderableBox;
+import com.simibubi.create.content.contraptions.bearing.WindmillBearingBlockEntity;
 
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.saint.createrenderfixer.Mod;
 import net.saint.createrenderfixer.dh.DhBridge;
 import net.saint.createrenderfixer.dh.WindmillLODEntry;
@@ -42,7 +44,7 @@ public final class WindmillLODRenderManager {
 	private static final boolean USE_ROTATION_TEST_OVERRIDE = false;
 	private static final float ROTATION_TEST_OVERRIDE_DEGREES = 30.0F;
 
-	private static final Color WINDMILL_CROSS_COLOR = new Color(250, 204, 105);
+	private static final Color WINDMILL_CROSS_COLOR = new Color(149, 129, 95);
 	private static final EDhApiBlockMaterial WINDMILL_CROSS_MATERIAL = EDhApiBlockMaterial.WOOD;
 
 	// State
@@ -84,12 +86,12 @@ public final class WindmillLODRenderManager {
 
 			activeIdentifiers.add(entry.contraptionId());
 
-			var renderGroup = ensureRenderGroup(renderFactory, renderRegister, entry);
+			var renderGroup = ensureRenderGroup(renderFactory, renderRegister, level, entry);
 			var renderAngle = getRenderAngleForEntry(level, entry, partialTicks);
 			renderAngle = getEffectiveRotationAngle(renderAngle);
 
 			if (renderGroup != null) {
-				updateRenderGroup(renderGroup, entry, renderAngle);
+				updateRenderGroup(renderGroup, level, entry, renderAngle);
 			}
 		}
 
@@ -100,7 +102,7 @@ public final class WindmillLODRenderManager {
 
 	@Nullable
 	private static IDhApiRenderableBoxGroup ensureRenderGroup(IDhApiCustomRenderObjectFactory renderFactory,
-			IDhApiCustomRenderRegister renderRegister, WindmillLODEntry entry) {
+			IDhApiCustomRenderRegister renderRegister, ClientLevel level, WindmillLODEntry entry) {
 		var renderGroup = RENDER_GROUPS.get(entry.contraptionId());
 
 		if (renderGroup != null) {
@@ -110,7 +112,7 @@ public final class WindmillLODRenderManager {
 		}
 
 		var resourceLocation = Mod.MOD_ID + ":windmill/" + entry.contraptionId();
-		var originPosition = toOrigin(entry.anchorPosition());
+		var originPosition = toOrigin(getRenderAnchorPositionForEntry(level, entry));
 		var crossBoxes = getWindmillCrossBoxesForEntry(entry, getEffectiveRotationAngle(entry.rotationAngle()));
 
 		try {
@@ -129,8 +131,9 @@ public final class WindmillLODRenderManager {
 		return renderGroup;
 	}
 
-	private static void updateRenderGroup(IDhApiRenderableBoxGroup renderGroup, WindmillLODEntry entry, float renderAngle) {
-		var originPosition = toOrigin(entry.anchorPosition());
+	private static void updateRenderGroup(IDhApiRenderableBoxGroup renderGroup, ClientLevel level, WindmillLODEntry entry,
+			float renderAngle) {
+		var originPosition = toOrigin(getRenderAnchorPositionForEntry(level, entry));
 		renderGroup.setOriginBlockPos(originPosition);
 
 		var lastAngle = LAST_RENDER_ANGLES.get(entry.contraptionId());
@@ -394,6 +397,40 @@ public final class WindmillLODRenderManager {
 
 	private static DhApiVec3d toOrigin(BlockPos anchorPosition) {
 		return new DhApiVec3d(anchorPosition.getX() + 0.5, anchorPosition.getY() + 0.5, anchorPosition.getZ() + 0.5);
+	}
+
+	private static BlockPos getRenderAnchorPositionForEntry(ClientLevel level, WindmillLODEntry entry) {
+		if (level == null) {
+			return entry.anchorPosition();
+		}
+
+		var bearingDirection = getBearingDirectionForEntry(level, entry);
+
+		if (bearingDirection == null) {
+			return entry.anchorPosition();
+		}
+
+		return entry.anchorPosition().relative(bearingDirection);
+	}
+
+	private static Direction getBearingDirectionForEntry(ClientLevel level, WindmillLODEntry entry) {
+		var blockEntity = level.getBlockEntity(entry.anchorPosition());
+
+		if (!(blockEntity instanceof WindmillBearingBlockEntity windmillBearing)) {
+			return null;
+		}
+
+		var blockState = windmillBearing.getBlockState();
+
+		if (blockState.hasProperty(BlockStateProperties.FACING)) {
+			return blockState.getValue(BlockStateProperties.FACING);
+		}
+
+		if (blockState.hasProperty(BlockStateProperties.HORIZONTAL_FACING)) {
+			return blockState.getValue(BlockStateProperties.HORIZONTAL_FACING);
+		}
+
+		return null;
 	}
 
 	private static String getDimensionIdForLevel(ClientLevel level) {

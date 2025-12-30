@@ -1,12 +1,13 @@
-package net.saint.createrenderfixer.client;
+package net.saint.createrenderfixer;
 
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.Minecraft;
+import net.saint.createrenderfixer.client.WindmillLODRenderManager;
 import net.saint.createrenderfixer.network.WindmillLODSyncUtil;
 
-public final class WindmillLODClient implements ClientModInitializer {
+public final class ModClient implements ClientModInitializer {
 
 	@Override
 	public void onInitializeClient() {
