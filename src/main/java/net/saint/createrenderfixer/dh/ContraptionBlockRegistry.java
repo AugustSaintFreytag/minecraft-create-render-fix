@@ -39,8 +39,7 @@ public final class ContraptionBlockRegistry {
 	public record StoredBlock(int x, int y, int z, BlockState state, String biomeId) {
 	}
 
-	public record LookupResult(BlockState state, @Nullable
-	String biomeId) {
+	public record LookupResult(BlockState state, @Nullable String biomeId) {
 	}
 
 	// Library (Models)
@@ -300,8 +299,8 @@ public final class ContraptionBlockRegistry {
 		var lastSynchronizationTick = serverLevel.getGameTime();
 		var bearingDirection = windmillData.bearingDirection();
 		var entry = new WindmillLODEntry(contraptionIdentifier, dimensionIdentifier, windmillData.controllerPosition(),
-				windmillData.rotationAxis(), bearingDirection, planeSize.width(), planeSize.height(), rotationSpeed,
-				rotationAngle, lastSynchronizationTick);
+				windmillData.rotationAxis(), bearingDirection, planeSize.width(), planeSize.height(), rotationSpeed, rotationAngle,
+				lastSynchronizationTick);
 
 		WindmillLODManager.register(entry);
 		WindmillLODSyncUtil.broadcastUpdatePacket(serverLevel.getServer(), entry);
@@ -345,7 +344,6 @@ public final class ContraptionBlockRegistry {
 		var sizeX = (float) bounds.getXsize();
 		var sizeY = (float) bounds.getYsize();
 		var sizeZ = (float) bounds.getZsize();
-
 
 		return switch (rotationAxis) {
 		case X -> new PlaneSize(sizeZ, sizeY);
@@ -397,9 +395,8 @@ public final class ContraptionBlockRegistry {
 	}
 
 	private static AABB getWorldBoundsForAnchor(BlockPos anchorPosition, AABB bounds) {
-		return new AABB(bounds.minX + anchorPosition.getX(), bounds.minY + anchorPosition.getY(),
-				bounds.minZ + anchorPosition.getZ(), bounds.maxX + anchorPosition.getX(),
-				bounds.maxY + anchorPosition.getY(), bounds.maxZ + anchorPosition.getZ());
+		return new AABB(bounds.minX + anchorPosition.getX(), bounds.minY + anchorPosition.getY(), bounds.minZ + anchorPosition.getZ(),
+				bounds.maxX + anchorPosition.getX(), bounds.maxY + anchorPosition.getY(), bounds.maxZ + anchorPosition.getZ());
 	}
 
 	@Nullable

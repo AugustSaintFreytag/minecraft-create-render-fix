@@ -20,6 +20,7 @@ public final class WindmillLODEntry {
 	private volatile float rotationSpeed;
 	private volatile float rotationAngle;
 	private volatile long lastSynchronizationTick;
+	private volatile boolean stale;
 	private volatile long renderGroupId;
 
 	// Init
@@ -37,6 +38,7 @@ public final class WindmillLODEntry {
 		this.rotationSpeed = rotationSpeed;
 		this.rotationAngle = rotationAngle;
 		this.lastSynchronizationTick = lastSynchronizationTick;
+		this.stale = false;
 		this.renderGroupId = -1;
 	}
 
@@ -82,6 +84,10 @@ public final class WindmillLODEntry {
 		return lastSynchronizationTick;
 	}
 
+	public boolean isStale() {
+		return stale;
+	}
+
 	public long renderGroupId() {
 		return renderGroupId;
 	}
@@ -94,6 +100,10 @@ public final class WindmillLODEntry {
 
 	public void setRotationAngle(float rotationAngle) {
 		this.rotationAngle = rotationAngle;
+	}
+
+	public void setStale(boolean stale) {
+		this.stale = stale;
 	}
 
 	public void setLastSynchronizationTick(long lastSynchronizationTick) {

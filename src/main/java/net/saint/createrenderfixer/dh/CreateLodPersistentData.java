@@ -167,6 +167,7 @@ public final class CreateLodPersistentData extends SavedData {
 			}
 
 			var windmillTag = new CompoundTag();
+
 			windmillTag.putString("identifier", contraptionIdentifier.toString());
 			windmillTag.putString("dimension", dimensionIdentifier);
 			windmillTag.put("anchor", NbtUtils.writeBlockPos(anchorPosition));
@@ -177,6 +178,7 @@ public final class CreateLodPersistentData extends SavedData {
 			windmillTag.putFloat("speed", entry.rotationSpeed());
 			windmillTag.putFloat("angle", entry.rotationAngle());
 			windmillTag.putLong("lastSynchronizationTick", entry.lastSynchronizationTick());
+
 			list.add(windmillTag);
 		}
 
@@ -276,7 +278,7 @@ public final class CreateLodPersistentData extends SavedData {
 
 			var rotationSpeed = entryTag.getFloat("speed");
 			var rotationAngle = entryTag.getFloat("angle");
-			var lastSynchronizationTick = resolveSynchronizationTick(entryTag);
+			var lastSynchronizationTick = entryTag.getLong("lastSynchronizationTick");
 
 			try {
 				var contraptionIdentifier = UUID.fromString(identifierValue);
@@ -299,14 +301,6 @@ public final class CreateLodPersistentData extends SavedData {
 		}
 
 		return entryTag.getString("id");
-	}
-
-	private static long resolveSynchronizationTick(CompoundTag entryTag) {
-		if (entryTag.contains("lastSynchronizationTick", Tag.TAG_LONG)) {
-			return entryTag.getLong("lastSynchronizationTick");
-		}
-
-		return entryTag.getLong("lastSyncTick");
 	}
 
 	private static Direction.Axis resolveAxis(String axisName) {
