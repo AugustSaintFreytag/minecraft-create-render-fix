@@ -6,6 +6,7 @@
 	"mixins": [
 		"create.AbstractContraptionEntityMixin",
 		"create.ControlledContraptionEntityAccessor",
+		"create.MechanicalBearingBlockEntityAccessor",
 		"dh.AbstractDhLevelMixin",
 		"dh.DhLodDataBuilderMixin"
 	],
