@@ -16,7 +16,6 @@ public final class WindmillLODServerTracker {
 	private static final int SYNCHRONIZATION_INTERVAL_TICKS = 20;
 	private static final float ROTATION_SYNC_THRESHOLD = 0.5F;
 	private static final float SPEED_SYNC_THRESHOLD = 0.01F;
-	private static final float ROTATION_DISCONNECT_LOG_THRESHOLD = 5.0F;
 
 	// Ticking
 
@@ -58,40 +57,42 @@ public final class WindmillLODServerTracker {
 			return;
 		}
 
-		var windmillBearing = getWindmillBearingForEntry(level, entry);
+		updateEntryForTickingChunk(server, level, entry, predictedAngle, currentTick);
+		entry.isStale = false;
+	}
 
-		if (windmillBearing == null) {
-			return;
-		}
+	// Debug
 
-		var rotationSpeed = windmillBearing.getAngularSpeed();
-
-		if (entry.isStale) {
-			logRotationDisconnectIfNeeded(entry, windmillBearing.getInterpolatedAngle(1.0F), predictedAngle, "STALE_ENTRY");
-			applyPredictedRotationToBearing(windmillBearing, entry, predictedAngle, "STALE_ENTRY");
-			entry.isStale = false;
-			synchronizeEntry(server, entry, rotationSpeed, predictedAngle, currentTick);
-
-			return;
-		}
-
-		var rotationAngle = windmillBearing.getInterpolatedAngle(1.0F);
-
-		logRotationDisconnectIfNeeded(entry, rotationAngle, predictedAngle, "TICKING_ENTRY");
-
-		if (shouldSynchronizeEntry(entry, rotationSpeed, rotationAngle)) {
-			synchronizeEntry(server, entry, rotationSpeed, rotationAngle, currentTick);
-		}
+	public static int forceSetLoadedWindmillRotationAnglesToZero(ServerLevel level) {
+		return forceSetLoadedWindmillRotationAnglesToZeroForLevel(level);
 	}
 
 	// Utility
+
+	private static void updateEntryForTickingChunk(MinecraftServer server, ServerLevel level, WindmillLODEntry entry, float predictedAngle,
+			long currentTick) {
+		var windmillBearing = getWindmillBearingForEntry(level, entry);
+
+		if (windmillBearing != null) {
+			applyPredictedRotationToBearing(windmillBearing, entry, predictedAngle, "TICKING_ENTRY");
+		}
+
+		var rotationSpeed = windmillBearing != null ? windmillBearing.getAngularSpeed() : 0.0F;
+
+		if (!shouldSynchronizeEntry(entry, rotationSpeed, predictedAngle)) {
+			return;
+		}
+
+		synchronizeEntry(server, entry, rotationSpeed, predictedAngle, currentTick);
+		Mod.LOGGER.info("Synchronized windmill LOD entry for contraption '{}' with predicted angle {} in ticking chunk.",
+				entry.contraptionId, predictedAngle);
+	}
 
 	private static void updateEntryForNonTickingChunk(MinecraftServer server, ServerLevel level, WindmillLODEntry entry,
 			float predictedAngle, long currentTick) {
 		var windmillBearing = getWindmillBearingForEntry(level, entry);
 
 		if (windmillBearing != null) {
-			logRotationDisconnectIfNeeded(entry, windmillBearing.getInterpolatedAngle(1.0F), predictedAngle, "NON_TICKING_ENTRY");
 			applyPredictedRotationToBearing(windmillBearing, entry, predictedAngle, "NON_TICKING_ENTRY");
 		}
 
@@ -102,6 +103,8 @@ public final class WindmillLODServerTracker {
 		}
 
 		synchronizeEntry(server, entry, rotationSpeed, predictedAngle, currentTick);
+		Mod.LOGGER.info("Synchronized windmill LOD entry for contraption '{}' with predicted angle {} in non-ticking chunk.",
+				entry.contraptionId, predictedAngle);
 	}
 
 	private static float getPredictedRotationAngleForEntry(WindmillLODEntry entry, long currentTick) {
@@ -120,19 +123,16 @@ public final class WindmillLODServerTracker {
 		var previousAngle = windmillBearing.getInterpolatedAngle(1.0F);
 
 		if (windmillBearing instanceof MechanicalBearingBlockEntityAccessor accessor) {
+			windmillBearing.setAngle(rotationAngle);
 			accessor.setPreviousAngle(rotationAngle);
-		}
 
-		windmillBearing.setAngle(rotationAngle);
-
-		if (entry == null) {
-			Mod.LOGGER.info("Overwrote windmill bearing angle from '{}' to '{}' due to '{}'.", previousAngle, rotationAngle, reason);
-
+			Mod.LOGGER.info("Overwrote windmill bearing angle from '{}' to '{}' for contraption '{}' due to '{}'.", previousAngle,
+					rotationAngle, entry.contraptionId, reason);
 			return;
 		}
 
-		Mod.LOGGER.info("Overwrote windmill bearing angle from '{}' to '{}' for contraption '{}' due to '{}'.", previousAngle,
-				rotationAngle, entry.contraptionId, reason);
+		Mod.LOGGER.info("Overwrote windmill bearing angle from '{}' to '{}' due to '{}'.", previousAngle, rotationAngle, reason);
+
 	}
 
 	private static void synchronizeEntry(MinecraftServer server, WindmillLODEntry entry, float rotationSpeed, float rotationAngle,
@@ -153,21 +153,6 @@ public final class WindmillLODServerTracker {
 		}
 
 		return true;
-	}
-
-	private static void logRotationDisconnectIfNeeded(WindmillLODEntry entry, float currentAngle, float targetAngle, String reason) {
-		if (entry == null) {
-			return;
-		}
-
-		var rotationDelta = getRotationDeltaForAngles(currentAngle, targetAngle);
-
-		if (rotationDelta <= ROTATION_DISCONNECT_LOG_THRESHOLD) {
-			return;
-		}
-
-		Mod.LOGGER.warn("Detected a windmill rotation disconnect of '{}' degrees for contraption '{}' while '{}'.", rotationDelta,
-				entry.contraptionId, reason);
 	}
 
 	private static float getRotationDeltaForAngles(float previousAngle, float nextAngle) {
@@ -211,6 +196,28 @@ public final class WindmillLODServerTracker {
 		}
 
 		return true;
+	}
+
+	private static int forceSetLoadedWindmillRotationAnglesToZeroForLevel(ServerLevel level) {
+		if (level == null) {
+			return 0;
+		}
+
+		var dimensionId = level.dimension().location().toString();
+		var updatedCount = 0;
+		var currentTick = level.getGameTime();
+		var server = level.getServer();
+
+		for (var entry : WindmillLODManager.entries()) {
+			if (!dimensionId.equals(entry.dimensionId)) {
+				continue;
+			}
+
+			synchronizeEntry(server, entry, entry.rotationSpeed, 0.0F, currentTick);
+			updatedCount++;
+		}
+
+		return updatedCount;
 	}
 
 	private static WindmillBearingBlockEntity getWindmillBearingForEntry(ServerLevel level, WindmillLODEntry entry) {

@@ -114,7 +114,7 @@ public final class WindmillLODSyncUtil {
 		}
 	}
 
-	// Serialization
+	// Read
 
 	private static ArrayList<WindmillLODEntry> readEntries(FriendlyByteBuf buffer) {
 		var entryCount = buffer.readVarInt();
@@ -132,6 +132,8 @@ public final class WindmillLODSyncUtil {
 
 		return entries;
 	}
+
+	// Coding
 
 	@Nullable
 	private static WindmillLODEntry readEntry(FriendlyByteBuf buffer) {

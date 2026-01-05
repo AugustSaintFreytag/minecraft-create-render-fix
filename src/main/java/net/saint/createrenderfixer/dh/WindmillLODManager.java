@@ -28,9 +28,9 @@ public final class WindmillLODManager {
 		}
 
 		var existing = ENTRIES.get(entry.contraptionId);
+
 		if (existing != null) {
 			if (existing.matchesRegistrationData(entry)) {
-
 				existing.rotationSpeed = entry.rotationSpeed;
 				existing.rotationAngle = entry.rotationAngle;
 				existing.lastSynchronizationTick = entry.lastSynchronizationTick;

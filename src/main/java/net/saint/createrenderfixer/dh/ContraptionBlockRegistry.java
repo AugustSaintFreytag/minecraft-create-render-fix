@@ -293,6 +293,11 @@ public final class ContraptionBlockRegistry {
 
 	private static void registerWindmillEntry(UUID contraptionIdentifier, ServerLevel serverLevel, String dimensionIdentifier,
 			WindmillRegistrationData windmillData) {
+		if (WindmillLODManager.find(contraptionIdentifier) != null) {
+			Mod.LOGGER.info("Windmill contraption '{}' with registered LOD entry loading back in.", contraptionIdentifier);
+			return;
+		}
+
 		var planeSize = resolvePlaneSize(windmillData.bounds(), windmillData.rotationAxis());
 		var rotationSpeed = windmillData.windmillBearing().getAngularSpeed();
 		var rotationAngle = windmillData.windmillBearing().getInterpolatedAngle(1.0F);
@@ -304,6 +309,7 @@ public final class ContraptionBlockRegistry {
 
 		WindmillLODManager.register(entry);
 		WindmillLODSyncUtil.broadcastUpdatePacket(serverLevel.getServer(), entry);
+
 		Mod.LOGGER.info("Registered windmill LOD entry for contraption '{}' in '{}'.", contraptionIdentifier, dimensionIdentifier);
 	}
 
