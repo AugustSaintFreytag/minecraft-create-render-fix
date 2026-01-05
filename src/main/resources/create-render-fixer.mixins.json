@@ -11,6 +11,7 @@
 		"dh.DhLodDataBuilderMixin"
 	],
 	"client": [
+		"EntityRendererMixin",
 		"BlockEntityInstanceAccessor",
 		"LevelRendererAccessor",
 		"RenderChunkInfoAccessor",
@@ -21,6 +22,7 @@
 		"create.MixerInstanceMixin",
 		"create.PressInstanceMixin",
 		"create.ContraptionRenderInfoMixin",
+		"create.WindmillBearingBlockEntityMixin",
 		"createdeco.SupportsMixin",
 		"createdeco.CatwalksMixin",
 		"createdeco.MeshFencesMixin",
