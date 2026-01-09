@@ -32,7 +32,11 @@ public final class ModConfig {
 
 	private static volatile boolean limitEntityRenderDistance = true;
 
-	private static volatile int entityLODDistanceOffset = 32;
+	private static volatile boolean limitBlockEntityRenderDistance = true;
+
+	private static volatile int entityLODDistanceOffset = 0;
+
+	private static volatile int blockEntityLODDistanceOffset = 0;
 
 	private static final Set<ResourceLocation> freezeBlacklist = ConcurrentHashMap.newKeySet();
 
@@ -70,8 +74,16 @@ public final class ModConfig {
 		return limitEntityRenderDistance;
 	}
 
+	public static boolean limitBlockEntityRenderDistance() {
+		return limitBlockEntityRenderDistance;
+	}
+
 	public static int entityLODDistanceOffset() {
 		return entityLODDistanceOffset;
+	}
+
+	public static int blockEntityLODDistanceOffset() {
+		return blockEntityLODDistanceOffset;
 	}
 
 	public static void setForceDisableRateLimiting(boolean value) {
@@ -142,9 +154,22 @@ public final class ModConfig {
 		save();
 	}
 
+	public static void setLimitBlockEntityRenderDistance(boolean value) {
+		limitBlockEntityRenderDistance = value;
+		var status = getStatusForToggle(value);
+		Mod.LOGGER.info("Block entity render distance limiting set to '{}'.", status);
+		save();
+	}
+
 	public static void setEntityLODDistanceOffset(int value) {
 		entityLODDistanceOffset = value;
 		Mod.LOGGER.info("Entity distance LOD offset set to {}", value);
+		save();
+	}
+
+	public static void setBlockEntityLODDistanceOffset(int value) {
+		blockEntityLODDistanceOffset = value;
+		Mod.LOGGER.info("Block entity LOD distance offset set to '{}'.", blockEntityLODDistanceOffset);
 		save();
 	}
 
@@ -155,7 +180,8 @@ public final class ModConfig {
 				+ ", freezeDistantInstances=" + freezeDistantInstances + ", freezeOccludedInstances=" + freezeOccludedInstances
 				+ ", injectContraptionLODs=" + injectContraptionLODs + ", freezeDistanceBlocks=" + freezeDistantInstancesRange
 				+ ", freezeBlacklist=" + freezeBlacklist + ", limitEntityRenderDistance=" + limitEntityRenderDistance
-				+ ", entityLODDistanceOffset=" + entityLODDistanceOffset;
+				+ ", limitBlockEntityRenderDistance=" + limitBlockEntityRenderDistance + ", entityLODDistanceOffset="
+				+ entityLODDistanceOffset + ", blockEntityLODDistanceOffset=" + blockEntityLODDistanceOffset;
 	}
 
 	// Persistence
@@ -200,5 +226,13 @@ public final class ModConfig {
 		}
 
 		return injectContraptionLODs;
+	}
+
+	private static String getStatusForToggle(boolean value) {
+		if (value) {
+			return "ENABLED";
+		}
+
+		return "DISABLED";
 	}
 }

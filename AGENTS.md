@@ -1,0 +1,13 @@
+- Write clean and maintainable Java.
+- Use modern language features and APIs where suitable.
+- Generally do not use abbreviations in your naming.
+- Exceptions to allowed shorthands are `id`, `lod`, and common terms.
+- Use `var` where possible for declarations.
+- Prefer private `getXForY` functions over ternary expressions.
+- Apply appropriate spacing and empty lines for visual grouping.
+- Insert an empty line before return statements if there is more than one preceding line.
+- Use sectioning comments if a file contains more than a few functions.
+- Encoding/decoding logic goes into the data model.
+- After implementing a change, consider the ways it might not work.
+- Log messages are full sentenced and end with a full stop.
+- Raw values encapsulated in log message strings should be wrapped in single quotes.
