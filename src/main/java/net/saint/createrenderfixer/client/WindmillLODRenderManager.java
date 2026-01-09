@@ -46,6 +46,8 @@ public final class WindmillLODRenderManager {
 	private static final float HEIGHT_CLIP_DISTANCE_OVERRIDE = 1.0F;
 	private static final int HEIGHT_CLIP_DISTANCE_PADDING = 1_000;
 
+	private static final float MAX_RENDER_DISTANCE = 2_048.0F;
+
 	private static final float ROTATION_MAX_THICKNESS_SCALE = 1.4F;
 
 	private static final int MIN_SEGMENT_COUNT = 6;
@@ -461,6 +463,17 @@ public final class WindmillLODRenderManager {
 			return false;
 		}
 
+		var cameraPosition = getCameraPosition();
+
+		if (cameraPosition != null) {
+			var originPosition = getRenderAnchorPositionForEntry(entry);
+			var distance = getDistanceToCamera(cameraPosition, originPosition);
+
+			if (distance > MAX_RENDER_DISTANCE) {
+				return false;
+			}
+		}
+
 		var clipDistance = getClipDistanceForLevel(level, partialTicks);
 
 		if (clipDistance > 0.0F) {
@@ -470,8 +483,6 @@ public final class WindmillLODRenderManager {
 		if (clipDistance <= 0.0F) {
 			return !isChunkLoadedForEntry(level, entry);
 		}
-
-		var cameraPosition = getCameraPosition();
 
 		if (cameraPosition == null) {
 			return true;
