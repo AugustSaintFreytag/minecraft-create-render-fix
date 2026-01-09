@@ -17,6 +17,9 @@
 	"entrypoints": {
 		"main": [
 			"net.saint.createrenderfixer.Mod"
+		],
+		"client": [
+			"net.saint.createrenderfixer.ModClient"
 		]
 	},
 	"mixins": [

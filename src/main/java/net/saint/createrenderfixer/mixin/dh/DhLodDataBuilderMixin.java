@@ -13,6 +13,7 @@ import com.seibel.distanthorizons.core.wrapperInterfaces.misc.IMutableBlockPosWr
 import com.seibel.distanthorizons.core.wrapperInterfaces.world.ILevelWrapper;
 
 import net.saint.createrenderfixer.Mod;
+import net.saint.createrenderfixer.ModConfig;
 import net.saint.createrenderfixer.dh.ContraptionBlockRegistry;
 import net.saint.createrenderfixer.dh.DhBridge;
 
@@ -32,6 +33,10 @@ public abstract class DhLodDataBuilderMixin {
 	@Redirect(method = "createFromChunk", at = @At(value = "INVOKE", target = "Lcom/seibel/distanthorizons/core/wrapperInterfaces/chunk/IChunkWrapper;getLightBlockingHeightMapValue(II)I"))
 	private static int crf$boostLightBlockingHeightMap(IChunkWrapper chunkWrapper, int relativeX, int relativeZ, ILevelWrapper levelWrapper,
 			IChunkWrapper originalChunkWrapper) {
+		if (!ModConfig.injectContraptionLODs()) {
+			return chunkWrapper.getLightBlockingHeightMapValue(relativeX, relativeZ);
+		}
+
 		var dimensionId = levelWrapper.getDhIdentifier();
 		var chunkPosition = chunkWrapper.getChunkPos();
 		var worldX = (chunkPosition.getX() << 4) + relativeX;
@@ -44,6 +49,10 @@ public abstract class DhLodDataBuilderMixin {
 	@Redirect(method = "createFromChunk", at = @At(value = "INVOKE", target = "Lcom/seibel/distanthorizons/core/wrapperInterfaces/chunk/IChunkWrapper;getSolidHeightMapValue(II)I"))
 	private static int crf$boostSolidHeightMap(IChunkWrapper chunkWrapper, int relativeX, int relativeZ, ILevelWrapper levelWrapper,
 			IChunkWrapper originalChunkWrapper) {
+		if (!ModConfig.injectContraptionLODs()) {
+			return chunkWrapper.getSolidHeightMapValue(relativeX, relativeZ);
+		}
+
 		var dimensionId = levelWrapper.getDhIdentifier();
 		var chunkPosition = chunkWrapper.getChunkPos();
 		var worldX = (chunkPosition.getX() << 4) + relativeX;
@@ -57,6 +66,9 @@ public abstract class DhLodDataBuilderMixin {
 	private static IBlockStateWrapper crf$injectContraptionBlocks(IChunkWrapper chunkWrapper, int relX, int relY, int relZ,
 			IMutableBlockPosWrapper mutablePos, IBlockStateWrapper cachedState, ILevelWrapper levelWrapper,
 			IChunkWrapper originalChunkWrapper) {
+		if (!ModConfig.injectContraptionLODs()) {
+			return chunkWrapper.getBlockState(relX, relY, relZ, mutablePos, cachedState);
+		}
 
 		var wrapperFactory = DhBridge.wrapperFactory();
 

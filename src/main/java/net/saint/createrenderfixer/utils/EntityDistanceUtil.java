@@ -7,52 +7,38 @@ import net.saint.createrenderfixer.ModConfig;
 
 public final class EntityDistanceUtil {
 
-	private static final double MAX_DISTANCE_FACTOR = 64.0;
+	// API
 
 	public static boolean shouldRenderAtPosition(Entity entity, Vec3 position) {
-		var entityPosition = entity.blockPosition();
-
-		var dx = entityPosition.getX() - (int) position.x;
-		var dy = entityPosition.getY() - (int) position.y;
-		var dz = entityPosition.getZ() - (int) position.z;
-
-		var renderDistanceBlocks = EntityDistanceUtil.getMaxUnboundedDistanceForWorld();
-		var deferredOffset = 0.28125 * renderDistanceBlocks + 52;
-
-		var offsetSq = deferredOffset + ModConfig.entityLODDistanceOffset();
-		var distanceSq = (dx * dx + dy * dy + dz * dz) + offsetSq;
-		var shouldRender = shouldRenderAtSqrDistance(entity, distanceSq);
-
-		return shouldRender;
-	}
-
-	public static boolean shouldRenderAtSqrDistance(Entity entity, double distance) {
-		var maxDistance = getMaxDistanceSqr(entity);
-		return distance < maxDistance;
-	}
-
-	public static double getMaxDistanceSqr(Entity entity) {
-		var size = getSize(entity);
-
-		var maxDistance = size * MAX_DISTANCE_FACTOR * Entity.getViewScale();
-		maxDistance = getMaxDistanceForWorld(maxDistance);
-
-		return maxDistance * maxDistance;
-	}
-
-	public static double getSize(Entity entity) {
-		var size = entity.getBoundingBox().getSize();
-
-		if (Double.isNaN(size)) {
-			return 1.0;
+		if (entity == null || position == null) {
+			return true;
 		}
 
-		return Math.min(size, 1.0);
+		var maxDistance = getMaxDistanceForWorld();
+
+		if (maxDistance <= 0) {
+			return false;
+		}
+
+		var distance = getHorizontalDistance(entity, position.x, position.z);
+
+		return distance <= maxDistance;
 	}
 
-	private static double getMaxDistanceForWorld(double maxDistance) {
-		var chunkDistance = getMaxUnboundedDistanceForWorld();
-		return Math.min(maxDistance, chunkDistance);
+	public static boolean shouldRenderAtPosition(Entity entity, double cameraX, double cameraZ) {
+		if (entity == null) {
+			return true;
+		}
+
+		var maxDistance = getMaxDistanceForWorld();
+
+		if (maxDistance <= 0) {
+			return false;
+		}
+
+		var distance = getHorizontalDistance(entity, cameraX, cameraZ);
+
+		return distance <= maxDistance;
 	}
 
 	public static int getMaxUnboundedDistanceForWorld() {
@@ -60,11 +46,36 @@ public final class EntityDistanceUtil {
 
 		if (client == null || client.options == null) {
 			return 0;
-
 		}
 
 		var chunkDistance = client.options.getEffectiveRenderDistance() * 16;
+
 		return chunkDistance;
+	}
+
+	// Utility
+
+	private static int getMaxDistanceForWorld() {
+		var renderDistanceBlocks = getMaxUnboundedDistanceForWorld();
+		var offsetBlocks = ModConfig.entityLODDistanceOffset();
+		var maxDistance = renderDistanceBlocks - offsetBlocks;
+
+		if (maxDistance > renderDistanceBlocks) {
+			maxDistance = renderDistanceBlocks;
+		}
+
+		if (maxDistance < 0) {
+			maxDistance = 0;
+		}
+
+		return maxDistance;
+	}
+
+	private static double getHorizontalDistance(Entity entity, double cameraX, double cameraZ) {
+		var xDifference = Math.abs(entity.getX() - cameraX);
+		var zDifference = Math.abs(entity.getZ() - cameraZ);
+
+		return Math.max(xDifference, zDifference);
 	}
 
 }

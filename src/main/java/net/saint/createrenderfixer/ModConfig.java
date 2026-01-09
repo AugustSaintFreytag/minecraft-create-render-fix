@@ -26,6 +26,8 @@ public final class ModConfig {
 
 	private static volatile boolean freezeOccludedInstances = true;
 
+	private static volatile boolean injectContraptionLODs = true;
+
 	private static volatile int freezeDistantInstancesRange = 62;
 
 	private static volatile boolean limitEntityRenderDistance = true;
@@ -50,6 +52,10 @@ public final class ModConfig {
 
 	public static boolean freezeOccludedInstances() {
 		return freezeOccludedInstances;
+	}
+
+	public static boolean injectContraptionLODs() {
+		return injectContraptionLODs;
 	}
 
 	public static int freezeDistantInstancesRange() {
@@ -89,6 +95,13 @@ public final class ModConfig {
 	public static void setFreezeOccludedInstances(boolean value) {
 		freezeOccludedInstances = value;
 		Mod.LOGGER.info("Freezing occluded instances set to {}", value ? "ENABLED" : "DISABLED");
+		save();
+	}
+
+	public static void setInjectContraptionLODs(boolean value) {
+		injectContraptionLODs = value;
+		var status = value ? "ENABLED" : "DISABLED";
+		Mod.LOGGER.info("Contraption LOD injection set to '{}'.", status);
 		save();
 	}
 
@@ -140,8 +153,9 @@ public final class ModConfig {
 	public static String debugDescription() {
 		return "forceDisableRateLimiting=" + forceDisableRateLimiting + ", cacheDynamicInstances=" + cacheDynamicInstances
 				+ ", freezeDistantInstances=" + freezeDistantInstances + ", freezeOccludedInstances=" + freezeOccludedInstances
-				+ ", freezeDistanceBlocks=" + freezeDistantInstancesRange + ", freezeBlacklist=" + freezeBlacklist
-				+ ", limitEntityRenderDistance=" + limitEntityRenderDistance + ", entityLODDistanceOffset=" + entityLODDistanceOffset;
+				+ ", injectContraptionLODs=" + injectContraptionLODs + ", freezeDistanceBlocks=" + freezeDistantInstancesRange
+				+ ", freezeBlacklist=" + freezeBlacklist + ", limitEntityRenderDistance=" + limitEntityRenderDistance
+				+ ", entityLODDistanceOffset=" + entityLODDistanceOffset;
 	}
 
 	// Persistence
@@ -156,14 +170,15 @@ public final class ModConfig {
 	}
 
 	private static ModConfigLoad.Data snapshot() {
-		return new ModConfigLoad.Data(cacheDynamicInstances, freezeDistantInstances, freezeOccludedInstances, freezeDistantInstancesRange,
-				freezeBlacklist.stream().map(ResourceLocation::toString).toList());
+		return new ModConfigLoad.Data(cacheDynamicInstances, freezeDistantInstances, freezeOccludedInstances, injectContraptionLODs,
+				freezeDistantInstancesRange, freezeBlacklist.stream().map(ResourceLocation::toString).toList());
 	}
 
 	private static void applyLoadedData(ModConfigLoad.Data data) {
 		cacheDynamicInstances = data.cacheDynamicInstances();
 		freezeDistantInstances = data.freezeDistantInstances();
 		freezeOccludedInstances = data.freezeOccludedInstances();
+		injectContraptionLODs = resolveInjectContraptionLODs(data);
 		freezeDistantInstancesRange = Math.max(0, data.freezeBlockDistance());
 
 		freezeBlacklist.clear();
@@ -175,5 +190,15 @@ public final class ModConfig {
 				Mod.LOGGER.warn("Skipping invalid resource id {} in config", id, exception);
 			}
 		}
+	}
+
+	private static boolean resolveInjectContraptionLODs(ModConfigLoad.Data data) {
+		var injectContraptionLODs = data.injectContraptionLODs();
+
+		if (injectContraptionLODs == null) {
+			return true;
+		}
+
+		return injectContraptionLODs;
 	}
 }

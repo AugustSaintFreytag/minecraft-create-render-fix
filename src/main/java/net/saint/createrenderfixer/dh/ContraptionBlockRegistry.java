@@ -17,13 +17,17 @@ import com.simibubi.create.content.contraptions.ControlledContraptionEntity;
 import com.simibubi.create.content.contraptions.bearing.WindmillBearingBlockEntity;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.Holder;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.phys.AABB;
 import net.saint.createrenderfixer.Mod;
 import net.saint.createrenderfixer.mixin.create.ControlledContraptionEntityAccessor;
+import net.saint.createrenderfixer.network.WindmillLODSyncUtil;
 
 /**
  * Thread-safe registry of contraption blocks keyed by dimension + chunk for DH overrides.
@@ -35,8 +39,7 @@ public final class ContraptionBlockRegistry {
 	public record StoredBlock(int x, int y, int z, BlockState state, String biomeId) {
 	}
 
-	public record LookupResult(BlockState state, @Nullable
-	String biomeId) {
+	public record LookupResult(BlockState state, @Nullable String biomeId) {
 	}
 
 	// Library (Models)
@@ -70,6 +73,13 @@ public final class ContraptionBlockRegistry {
 		}
 	}
 
+	private record PlaneSize(float width, float height) {
+	}
+
+	private record WindmillRegistrationData(BlockPos controllerPosition, WindmillBearingBlockEntity windmillBearing,
+			Direction.Axis rotationAxis, Direction bearingDirection, AABB bounds) {
+	}
+
 	// State
 
 	private static final Map<UUID, ContraptionEntry> CONTRAPTIONS = new ConcurrentHashMap<>();
@@ -88,18 +98,27 @@ public final class ContraptionBlockRegistry {
 			return;
 		}
 
-		var contraptionIdentifier = entity.getUUID();
+		var contraptionId = entity.getUUID();
 
-		if (CONTRAPTIONS.containsKey(contraptionIdentifier)) {
+		if (CONTRAPTIONS.containsKey(contraptionId)) {
 			return;
 		}
 
-		var dimensionIdentifier = serverLevel.dimension().location().toString();
-		var entry = new ContraptionEntry(dimensionIdentifier);
+		var dimensionId = serverLevel.dimension().location().toString();
+		var entry = new ContraptionEntry(dimensionId);
 		var anchorPosition = contraption.anchor;
 
 		if (anchorPosition == null) {
-			Mod.LOGGER.warn("Contraption '{}' has no anchor block position and can not be registered.", contraptionIdentifier);
+			Mod.LOGGER.warn("Contraption '{}' has no anchor block position and can not be registered.", contraptionId);
+
+			return;
+		}
+
+		var windmillData = resolveWindmillRegistrationData(entity, serverLevel);
+
+		if (windmillData != null) {
+			registerWindmillEntry(contraptionId, serverLevel, dimensionId, windmillData);
+			removeStoredBlocksForWindmill(dimensionId, anchorPosition, windmillData.bounds());
 
 			return;
 		}
@@ -114,48 +133,34 @@ public final class ContraptionBlockRegistry {
 					.add(new BlockPosState(worldPosition, info.state(), biomeIdentifier));
 		});
 
-		CONTRAPTIONS.put(contraptionIdentifier, entry);
+		CONTRAPTIONS.put(contraptionId, entry);
 
-		var dimensionChunkMap = BY_DIMENSION.computeIfAbsent(dimensionIdentifier, key -> new ConcurrentHashMap<>());
+		var dimensionChunkMap = BY_DIMENSION.computeIfAbsent(dimensionId, key -> new ConcurrentHashMap<>());
 
 		for (var chunkEntry : entry.chunks.entrySet()) {
 			var combinedList = dimensionChunkMap.computeIfAbsent(chunkEntry.getKey(), key -> createSharedChunkList());
 			combinedList.addAll(chunkEntry.getValue());
 		}
 
-		notifyChunksDirty(dimensionIdentifier, entry.chunks.keySet());
-		registerWindmillEntry(entity, serverLevel, dimensionIdentifier);
+		notifyChunksDirty(dimensionId, entry.chunks.keySet());
+	}
+
+	public static void unregister(AbstractContraptionEntity entity) {
+		if (!(entity.level() instanceof ServerLevel serverLevel)) {
+			return;
+		}
+
+		var contraptionIdentifier = entity.getUUID();
+		var windmillRemoved = unregisterInternal(contraptionIdentifier);
+
+		if (windmillRemoved) {
+			WindmillLODSyncUtil.broadcastRemovalPacket(serverLevel.getServer(), contraptionIdentifier);
+			Mod.LOGGER.info("Unregistered windmill LOD entry for contraption '{}'.", contraptionIdentifier);
+		}
 	}
 
 	public static void unregister(UUID contraptionId) {
-		var removed = CONTRAPTIONS.remove(contraptionId);
-
-		if (removed == null) {
-			return;
-		}
-
-		var chunkMap = BY_DIMENSION.get(removed.dimensionId);
-
-		if (chunkMap == null) {
-			return;
-		}
-
-		for (var chunkEntry : removed.chunks.entrySet()) {
-			var combinedList = chunkMap.get(chunkEntry.getKey());
-
-			if (combinedList == null) {
-				continue;
-			}
-
-			combinedList.removeAll(chunkEntry.getValue());
-
-			if (combinedList.isEmpty()) {
-				chunkMap.remove(chunkEntry.getKey(), combinedList);
-			}
-		}
-
-		notifyChunksDirty(removed.dimensionId, removed.chunks.keySet());
-		WindmillLODManager.unregister(contraptionId);
+		unregisterInternal(contraptionId);
 	}
 
 	public static void clearForWorld(String dimensionId) {
@@ -286,46 +291,173 @@ public final class ContraptionBlockRegistry {
 
 	// Utility
 
-	private static void registerWindmillEntry(AbstractContraptionEntity entity, ServerLevel serverLevel, String dimensionIdentifier) {
-		if (!(entity instanceof ControlledContraptionEntity controlledContraption)) {
+	private static void registerWindmillEntry(UUID contraptionIdentifier, ServerLevel serverLevel, String dimensionIdentifier,
+			WindmillRegistrationData windmillData) {
+		if (WindmillLODManager.find(contraptionIdentifier) != null) {
+			Mod.LOGGER.info("Windmill contraption '{}' with registered LOD entry loading back in.", contraptionIdentifier);
 			return;
 		}
 
-		if (!(controlledContraption instanceof ControlledContraptionEntityAccessor accessor)) {
+		var planeSize = resolvePlaneSize(windmillData.bounds(), windmillData.rotationAxis());
+		var rotationSpeed = windmillData.windmillBearing().getAngularSpeed();
+		var rotationAngle = windmillData.windmillBearing().getInterpolatedAngle(1.0F);
+		var lastSynchronizationTick = serverLevel.getGameTime();
+		var bearingDirection = windmillData.bearingDirection();
+		var entry = new WindmillLODEntry(contraptionIdentifier, dimensionIdentifier, windmillData.controllerPosition(),
+				windmillData.rotationAxis(), bearingDirection, planeSize.width(), planeSize.height(), rotationSpeed, rotationAngle,
+				lastSynchronizationTick);
+
+		WindmillLODManager.register(entry);
+		WindmillLODSyncUtil.broadcastUpdatePacket(serverLevel.getServer(), entry);
+
+		Mod.LOGGER.info("Registered windmill LOD entry for contraption '{}' in '{}'.", contraptionIdentifier, dimensionIdentifier);
+	}
+
+	private static boolean unregisterInternal(UUID contraptionId) {
+		var removed = CONTRAPTIONS.remove(contraptionId);
+		var windmillRemoved = WindmillLODManager.unregister(contraptionId);
+
+		if (removed == null) {
+			return windmillRemoved;
+		}
+
+		var chunkMap = BY_DIMENSION.get(removed.dimensionId);
+
+		if (chunkMap == null) {
+			return windmillRemoved;
+		}
+
+		for (var chunkEntry : removed.chunks.entrySet()) {
+			var combinedList = chunkMap.get(chunkEntry.getKey());
+
+			if (combinedList == null) {
+				continue;
+			}
+
+			combinedList.removeAll(chunkEntry.getValue());
+
+			if (combinedList.isEmpty()) {
+				chunkMap.remove(chunkEntry.getKey(), combinedList);
+			}
+		}
+
+		notifyChunksDirty(removed.dimensionId, removed.chunks.keySet());
+
+		return windmillRemoved;
+	}
+
+	private static PlaneSize resolvePlaneSize(AABB bounds, Direction.Axis rotationAxis) {
+		var sizeX = (float) bounds.getXsize();
+		var sizeY = (float) bounds.getYsize();
+		var sizeZ = (float) bounds.getZsize();
+
+		return switch (rotationAxis) {
+		case X -> new PlaneSize(sizeZ, sizeY);
+		case Y -> new PlaneSize(sizeX, sizeZ);
+		case Z -> new PlaneSize(sizeX, sizeY);
+		};
+	}
+
+	private static void removeStoredBlocksForWindmill(String dimensionId, BlockPos anchorPosition, AABB bounds) {
+		var chunkMap = BY_DIMENSION.get(dimensionId);
+
+		if (chunkMap == null) {
 			return;
+		}
+
+		var worldBounds = getWorldBoundsForAnchor(anchorPosition, bounds);
+		var minX = (int) Math.floor(worldBounds.minX);
+		var minY = (int) Math.floor(worldBounds.minY);
+		var minZ = (int) Math.floor(worldBounds.minZ);
+		var maxX = (int) Math.ceil(worldBounds.maxX) - 1;
+		var maxY = (int) Math.ceil(worldBounds.maxY) - 1;
+		var maxZ = (int) Math.ceil(worldBounds.maxZ) - 1;
+
+		if (minX > maxX || minY > maxY || minZ > maxZ) {
+			return;
+		}
+
+		var affectedChunks = new ArrayList<Long>();
+
+		for (var chunkEntry : chunkMap.entrySet()) {
+			var entries = chunkEntry.getValue();
+			var initialSize = entries.size();
+
+			entries.removeIf(entry -> entry.x >= minX && entry.x <= maxX && entry.y >= minY && entry.y <= maxY && entry.z >= minZ
+					&& entry.z <= maxZ);
+
+			if (entries.isEmpty()) {
+				chunkMap.remove(chunkEntry.getKey(), entries);
+			}
+
+			if (entries.size() != initialSize) {
+				affectedChunks.add(chunkEntry.getKey());
+			}
+		}
+
+		if (!affectedChunks.isEmpty()) {
+			notifyChunksDirty(dimensionId, affectedChunks);
+		}
+	}
+
+	private static AABB getWorldBoundsForAnchor(BlockPos anchorPosition, AABB bounds) {
+		return new AABB(bounds.minX + anchorPosition.getX(), bounds.minY + anchorPosition.getY(), bounds.minZ + anchorPosition.getZ(),
+				bounds.maxX + anchorPosition.getX(), bounds.maxY + anchorPosition.getY(), bounds.maxZ + anchorPosition.getZ());
+	}
+
+	@Nullable
+	private static WindmillRegistrationData resolveWindmillRegistrationData(AbstractContraptionEntity entity, ServerLevel serverLevel) {
+		if (!(entity instanceof ControlledContraptionEntity controlledContraption)) {
+			return null;
+		}
+
+		if (!(controlledContraption instanceof ControlledContraptionEntityAccessor accessor)) {
+			return null;
 		}
 
 		var controllerPosition = accessor.getControllerPosition();
 
 		if (controllerPosition == null) {
-			return;
+			return null;
 		}
 
 		var blockEntity = serverLevel.getBlockEntity(controllerPosition);
 
 		if (!(blockEntity instanceof WindmillBearingBlockEntity windmillBearing)) {
-			return;
+			return null;
 		}
 
 		var rotationAxis = controlledContraption.getRotationAxis();
 
 		if (rotationAxis == null) {
-			return;
+			return null;
 		}
 
-		var contraptionIdentifier = entity.getUUID();
+		var bounds = entity.getContraption().bounds;
 
-		if (WindmillLODManager.find(contraptionIdentifier) != null) {
-			return;
+		if (bounds == null) {
+			return null;
 		}
 
-		var rotationSpeed = windmillBearing.getAngularSpeed();
-		var rotationAngle = windmillBearing.getInterpolatedAngle(1.0F);
-		var lastSynchronizationTick = serverLevel.getGameTime();
-		var entry = new WindmillLODEntry(contraptionIdentifier, dimensionIdentifier, controllerPosition, rotationAxis, rotationSpeed,
-				rotationAngle, lastSynchronizationTick);
+		var bearingDirection = resolveBearingDirection(windmillBearing, rotationAxis);
 
-		WindmillLODManager.register(entry);
+		return new WindmillRegistrationData(controllerPosition, windmillBearing, rotationAxis, bearingDirection, bounds);
+	}
+
+	private static Direction resolveBearingDirection(WindmillBearingBlockEntity windmillBearing, Direction.Axis rotationAxis) {
+		if (windmillBearing != null) {
+			var blockState = windmillBearing.getBlockState();
+
+			if (blockState.hasProperty(BlockStateProperties.FACING)) {
+				return blockState.getValue(BlockStateProperties.FACING);
+			}
+
+			if (blockState.hasProperty(BlockStateProperties.HORIZONTAL_FACING)) {
+				return blockState.getValue(BlockStateProperties.HORIZONTAL_FACING);
+			}
+		}
+
+		return Direction.fromAxisAndDirection(rotationAxis, Direction.AxisDirection.POSITIVE);
 	}
 
 	@Nullable
