@@ -1,25 +1,26 @@
-package net.saint.createrenderfixer;
+package net.saint.createrenderfixer.utils;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
 import net.minecraft.world.phys.Vec3;
+import net.saint.createrenderfixer.ModConfig;
 import net.saint.createrenderfixer.mixin.LevelRendererAccessor;
 import net.saint.createrenderfixer.mixin.RenderChunkInfoAccessor;
 
 public final class FreezeConditionUtil {
 
 	public static boolean shouldFreezeAtPosition(BlockPos worldPosition, int cameraX, int cameraY, int cameraZ) {
-		if (!Mod.configProperties.freezeDistantInstances) {
+		if (!ModConfig.freezeDistantInstances()) {
 			return false;
 		}
 
-		var limit = Mod.configProperties.freezeBlockDistance;
+		var limit = ModConfig.freezeDistantInstancesRange();
 		if (limit <= 0) {
 			return false;
 		}
 
-		if (Mod.configProperties.freezeOccludedInstances && isPositionOccluded(worldPosition)) {
+		if (ModConfig.freezeOccludedInstances() && isPositionOccluded(worldPosition)) {
 			return true;
 		}
 

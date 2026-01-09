@@ -74,7 +74,7 @@ public final class ModConfigLoad {
 
 	// Library
 
-public record Data(boolean cacheDynamicInstances, boolean freezeDistantInstances, boolean freezeOccludedInstances,
-			int freezeBlockDistance, List<String> freezeBlacklist) {
+	public record Data(boolean cacheDynamicInstances, boolean freezeDistantInstances, boolean freezeOccludedInstances,
+			Boolean injectContraptionLODs, int freezeBlockDistance, List<String> freezeBlacklist) {
 	}
 }

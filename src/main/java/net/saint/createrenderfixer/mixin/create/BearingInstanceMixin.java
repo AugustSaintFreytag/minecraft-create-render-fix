@@ -15,7 +15,7 @@ import com.simibubi.create.content.contraptions.bearing.BearingInstance;
 import com.simibubi.create.content.contraptions.bearing.IBearingBlockEntity;
 import com.simibubi.create.foundation.utility.AnimationTickHolder;
 
-import net.saint.createrenderfixer.Mod;
+import net.saint.createrenderfixer.ModConfig;
 import net.saint.createrenderfixer.mixin.BlockEntityInstanceAccessor;
 
 @Mixin(BearingInstance.class)
@@ -42,7 +42,7 @@ public abstract class BearingInstanceMixin {
 
 	@Inject(method = "beginFrame", at = @At("HEAD"), cancellable = true, remap = false)
 	private void crf$cacheAndFreeze(CallbackInfo callbackInfo) {
-		if (!Mod.configProperties.cacheDynamicInstances) {
+		if (!ModConfig.cacheDynamicInstances()) {
 			return;
 		}
 

@@ -26,7 +26,17 @@ public final class ModConfig {
 
 	private static volatile boolean freezeOccludedInstances = true;
 
-	private static volatile int freezeBlockDistance = 62; // 64 - 2 buffer
+	private static volatile boolean injectContraptionLODs = true;
+
+	private static volatile int freezeDistantInstancesRange = 62;
+
+	private static volatile boolean limitEntityRenderDistance = true;
+
+	private static volatile boolean limitBlockEntityRenderDistance = true;
+
+	private static volatile int entityLODDistanceOffset = 0;
+
+	private static volatile int blockEntityLODDistanceOffset = 0;
 
 	private static final Set<ResourceLocation> freezeBlacklist = ConcurrentHashMap.newKeySet();
 
@@ -48,12 +58,32 @@ public final class ModConfig {
 		return freezeOccludedInstances;
 	}
 
-	public static int freezeBlockDistance() {
-		return freezeBlockDistance;
+	public static boolean injectContraptionLODs() {
+		return injectContraptionLODs;
+	}
+
+	public static int freezeDistantInstancesRange() {
+		return freezeDistantInstancesRange;
 	}
 
 	public static Set<ResourceLocation> freezeBlacklist() {
 		return Collections.unmodifiableSet(freezeBlacklist);
+	}
+
+	public static boolean limitEntityRenderDistance() {
+		return limitEntityRenderDistance;
+	}
+
+	public static boolean limitBlockEntityRenderDistance() {
+		return limitBlockEntityRenderDistance;
+	}
+
+	public static int entityLODDistanceOffset() {
+		return entityLODDistanceOffset;
+	}
+
+	public static int blockEntityLODDistanceOffset() {
+		return blockEntityLODDistanceOffset;
 	}
 
 	public static void setForceDisableRateLimiting(boolean value) {
@@ -80,9 +110,16 @@ public final class ModConfig {
 		save();
 	}
 
-	public static void setFreezeBlockDistance(int blocks) {
-		freezeBlockDistance = Math.max(0, blocks);
-		Mod.LOGGER.info("Freeze distance set to {} blocks", freezeBlockDistance);
+	public static void setInjectContraptionLODs(boolean value) {
+		injectContraptionLODs = value;
+		var status = value ? "ENABLED" : "DISABLED";
+		Mod.LOGGER.info("Contraption LOD injection set to '{}'.", status);
+		save();
+	}
+
+	public static void setFreezeDistantInstancesRange(int blocks) {
+		freezeDistantInstancesRange = Math.max(0, blocks);
+		Mod.LOGGER.info("Freeze distance set to {} blocks", freezeDistantInstancesRange);
 		save();
 	}
 
@@ -111,12 +148,40 @@ public final class ModConfig {
 		return id != null && freezeBlacklist.contains(id);
 	}
 
+	public static void setLimitEntityRenderDistance(boolean value) {
+		limitEntityRenderDistance = value;
+		Mod.LOGGER.info("Entity render distance limiting set to {}", value ? "ENABLED" : "DISABLED");
+		save();
+	}
+
+	public static void setLimitBlockEntityRenderDistance(boolean value) {
+		limitBlockEntityRenderDistance = value;
+		var status = getStatusForToggle(value);
+		Mod.LOGGER.info("Block entity render distance limiting set to '{}'.", status);
+		save();
+	}
+
+	public static void setEntityLODDistanceOffset(int value) {
+		entityLODDistanceOffset = value;
+		Mod.LOGGER.info("Entity distance LOD offset set to {}", value);
+		save();
+	}
+
+	public static void setBlockEntityLODDistanceOffset(int value) {
+		blockEntityLODDistanceOffset = value;
+		Mod.LOGGER.info("Block entity LOD distance offset set to '{}'.", blockEntityLODDistanceOffset);
+		save();
+	}
+
 	// Debug
 
 	public static String debugDescription() {
 		return "forceDisableRateLimiting=" + forceDisableRateLimiting + ", cacheDynamicInstances=" + cacheDynamicInstances
 				+ ", freezeDistantInstances=" + freezeDistantInstances + ", freezeOccludedInstances=" + freezeOccludedInstances
-				+ ", freezeDistanceBlocks=" + freezeBlockDistance + ", freezeBlacklist=" + freezeBlacklist;
+				+ ", injectContraptionLODs=" + injectContraptionLODs + ", freezeDistanceBlocks=" + freezeDistantInstancesRange
+				+ ", freezeBlacklist=" + freezeBlacklist + ", limitEntityRenderDistance=" + limitEntityRenderDistance
+				+ ", limitBlockEntityRenderDistance=" + limitBlockEntityRenderDistance + ", entityLODDistanceOffset="
+				+ entityLODDistanceOffset + ", blockEntityLODDistanceOffset=" + blockEntityLODDistanceOffset;
 	}
 
 	// Persistence
@@ -127,20 +192,20 @@ public final class ModConfig {
 	}
 
 	private static void save() {
-		Mod.reloadConfigProperties();
 		ModConfigLoad.save(snapshot());
 	}
 
 	private static ModConfigLoad.Data snapshot() {
-		return new ModConfigLoad.Data(cacheDynamicInstances, freezeDistantInstances, freezeOccludedInstances, freezeBlockDistance,
-				freezeBlacklist.stream().map(ResourceLocation::toString).toList());
+		return new ModConfigLoad.Data(cacheDynamicInstances, freezeDistantInstances, freezeOccludedInstances, injectContraptionLODs,
+				freezeDistantInstancesRange, freezeBlacklist.stream().map(ResourceLocation::toString).toList());
 	}
 
 	private static void applyLoadedData(ModConfigLoad.Data data) {
 		cacheDynamicInstances = data.cacheDynamicInstances();
 		freezeDistantInstances = data.freezeDistantInstances();
 		freezeOccludedInstances = data.freezeOccludedInstances();
-		freezeBlockDistance = Math.max(0, data.freezeBlockDistance());
+		injectContraptionLODs = resolveInjectContraptionLODs(data);
+		freezeDistantInstancesRange = Math.max(0, data.freezeBlockDistance());
 
 		freezeBlacklist.clear();
 
@@ -151,5 +216,23 @@ public final class ModConfig {
 				Mod.LOGGER.warn("Skipping invalid resource id {} in config", id, exception);
 			}
 		}
+	}
+
+	private static boolean resolveInjectContraptionLODs(ModConfigLoad.Data data) {
+		var injectContraptionLODs = data.injectContraptionLODs();
+
+		if (injectContraptionLODs == null) {
+			return true;
+		}
+
+		return injectContraptionLODs;
+	}
+
+	private static String getStatusForToggle(boolean value) {
+		if (value) {
+			return "ENABLED";
+		}
+
+		return "DISABLED";
 	}
 }
