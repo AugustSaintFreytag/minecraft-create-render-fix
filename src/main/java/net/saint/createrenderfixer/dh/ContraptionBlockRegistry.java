@@ -73,7 +73,7 @@ public final class ContraptionBlockRegistry {
 		}
 	}
 
-	private record PlaneSize(float width, float height) {
+	private record PlaneSize(float width, float height, float depth) {
 	}
 
 	private record WindmillRegistrationData(BlockPos controllerPosition, WindmillBearingBlockEntity windmillBearing,
@@ -304,8 +304,8 @@ public final class ContraptionBlockRegistry {
 		var lastSynchronizationTick = serverLevel.getGameTime();
 		var bearingDirection = windmillData.bearingDirection();
 		var entry = new WindmillLODEntry(contraptionIdentifier, dimensionIdentifier, windmillData.controllerPosition(),
-				windmillData.rotationAxis(), bearingDirection, planeSize.width(), planeSize.height(), rotationSpeed, rotationAngle,
-				lastSynchronizationTick);
+				windmillData.rotationAxis(), bearingDirection, planeSize.width(), planeSize.height(), planeSize.depth(), rotationSpeed,
+				rotationAngle, lastSynchronizationTick);
 
 		WindmillLODManager.register(entry);
 		WindmillLODSyncUtil.broadcastUpdatePacket(serverLevel.getServer(), entry);
@@ -352,9 +352,9 @@ public final class ContraptionBlockRegistry {
 		var sizeZ = (float) bounds.getZsize();
 
 		return switch (rotationAxis) {
-		case X -> new PlaneSize(sizeZ, sizeY);
-		case Y -> new PlaneSize(sizeX, sizeZ);
-		case Z -> new PlaneSize(sizeX, sizeY);
+		case X -> new PlaneSize(sizeZ, sizeY, sizeX);
+		case Y -> new PlaneSize(sizeX, sizeZ, sizeY);
+		case Z -> new PlaneSize(sizeX, sizeY, sizeZ);
 		};
 	}
 

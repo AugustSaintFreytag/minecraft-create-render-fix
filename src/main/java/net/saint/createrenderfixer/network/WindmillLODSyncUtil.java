@@ -144,6 +144,7 @@ public final class WindmillLODSyncUtil {
 		var bearingDirection = buffer.readEnum(Direction.class);
 		var planeWidth = buffer.readFloat();
 		var planeHeight = buffer.readFloat();
+		var planeDepth = buffer.readFloat();
 		var rotationSpeed = buffer.readFloat();
 		var rotationAngle = buffer.readFloat();
 		var lastSynchronizationTick = buffer.readLong();
@@ -153,7 +154,7 @@ public final class WindmillLODSyncUtil {
 		}
 
 		return new WindmillLODEntry(contraptionId, dimensionId, anchorPosition, rotationAxis, bearingDirection, planeWidth, planeHeight,
-				rotationSpeed, rotationAngle, lastSynchronizationTick);
+				planeDepth, rotationSpeed, rotationAngle, lastSynchronizationTick);
 	}
 
 	private static void writeEntry(FriendlyByteBuf buffer, WindmillLODEntry entry) {
@@ -164,6 +165,7 @@ public final class WindmillLODSyncUtil {
 		buffer.writeEnum(entry.bearingDirection);
 		buffer.writeFloat(entry.planeWidth);
 		buffer.writeFloat(entry.planeHeight);
+		buffer.writeFloat(entry.planeDepth);
 		buffer.writeFloat(entry.rotationSpeed);
 		buffer.writeFloat(entry.rotationAngle);
 		buffer.writeLong(entry.lastSynchronizationTick);
