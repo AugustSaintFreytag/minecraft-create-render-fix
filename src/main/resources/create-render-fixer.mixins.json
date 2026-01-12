@@ -11,12 +11,13 @@
 		"dh.DhLodDataBuilderMixin"
 	],
 	"client": [
-		"EntityRendererMixin",
 		"BlockEntityInstanceAccessor",
 		"LevelRendererAccessor",
 		"RenderChunkInfoAccessor",
+		"EntityRendererMixin",
 		"flw.InstanceManagerMixin",
 		"flw.BandedPrimeLimiterMixin",
+		"flw.MixinCrumblingRenderer",
 		"create.BearingInstanceMixin",
 		"create.HandCrankInstanceMixin",
 		"create.MixerInstanceMixin",
