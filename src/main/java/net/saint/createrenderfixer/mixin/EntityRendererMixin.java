@@ -28,6 +28,12 @@ public abstract class EntityRendererMixin<T extends Entity> {
 
 		var bounds = entity.getBoundingBoxForCulling();
 
+		if (bounds == null) {
+			return;
+		}
+
+		bounds.inflate(2.0);
+
 		if (!frustum.isVisible(bounds)) {
 			callbackInfo.setReturnValue(false);
 
