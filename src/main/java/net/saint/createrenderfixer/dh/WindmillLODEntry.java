@@ -25,6 +25,7 @@ public final class WindmillLODEntry {
 	public static final String NBT_PLANE_DEPTH = "PlaneDepth";
 	public static final String NBT_ROTATION_SPEED = "RotationSpeed";
 	public static final String NBT_ROTATION_ANGLE = "RotationAngle";
+	public static final String NBT_TICK_REGISTERED = "TickRegistered";
 	public static final String NBT_LAST_SYNCHRONIZATION_TICK = "LastSynchronizationTick";
 
 	private static final String LEGACY_NBT_IDENTIFIER = "identifier";
@@ -51,6 +52,7 @@ public final class WindmillLODEntry {
 	public final float planeHeight;
 	public final float planeDepth;
 	public final BladeGeometry bladeGeometry;
+	public final long tickRegistered;
 
 	public volatile float rotationSpeed;
 	public volatile float rotationAngle;
@@ -61,8 +63,8 @@ public final class WindmillLODEntry {
 	// Init
 
 	public WindmillLODEntry(UUID contraptionId, String dimensionId, BlockPos anchorPosition, Direction.Axis rotationAxis,
-			Direction bearingDirection, float planeWidth, float planeHeight, float planeDepth, float rotationSpeed, float rotationAngle,
-			long lastSynchronizationTick) {
+			Direction bearingDirection, float planeWidth, float planeHeight, float planeDepth, long tickRegistered, float rotationSpeed,
+			float rotationAngle, long lastSynchronizationTick) {
 		this.contraptionId = contraptionId;
 		this.dimensionId = dimensionId;
 		this.anchorPosition = anchorPosition;
@@ -72,6 +74,7 @@ public final class WindmillLODEntry {
 		this.planeHeight = planeHeight;
 		this.planeDepth = planeDepth;
 		this.bladeGeometry = WindmillLODGeometryUtil.makeBladeGeometry(planeWidth, planeHeight, planeDepth);
+		this.tickRegistered = tickRegistered;
 		this.rotationSpeed = rotationSpeed;
 		this.rotationAngle = rotationAngle;
 		this.lastSynchronizationTick = lastSynchronizationTick;
@@ -121,7 +124,7 @@ public final class WindmillLODEntry {
 
 	public WindmillLODEntry createPersistenceSnapshot() {
 		return new WindmillLODEntry(contraptionId, dimensionId, anchorPosition, rotationAxis, bearingDirection, planeWidth, planeHeight,
-				planeDepth, rotationSpeed, rotationAngle, lastSynchronizationTick);
+				planeDepth, tickRegistered, rotationSpeed, rotationAngle, lastSynchronizationTick);
 	}
 
 	// Encoding
@@ -143,6 +146,7 @@ public final class WindmillLODEntry {
 		windmillTag.putFloat(NBT_PLANE_DEPTH, planeDepth);
 		windmillTag.putFloat(NBT_ROTATION_SPEED, rotationSpeed);
 		windmillTag.putFloat(NBT_ROTATION_ANGLE, rotationAngle);
+		windmillTag.putLong(NBT_TICK_REGISTERED, tickRegistered);
 		windmillTag.putLong(NBT_LAST_SYNCHRONIZATION_TICK, lastSynchronizationTick);
 
 		return windmillTag;
@@ -179,12 +183,13 @@ public final class WindmillLODEntry {
 		var rotationAngle = getFloatForKeysOrDefault(entryTag, 0.0F, NBT_ROTATION_ANGLE, LEGACY_NBT_ANGLE);
 		var lastSynchronizationTick = getLongForKeysOrDefault(entryTag, 0L, NBT_LAST_SYNCHRONIZATION_TICK,
 				LEGACY_NBT_LAST_SYNCHRONIZATION_TICK);
+		var tickRegistered = getLongForKeysOrDefault(entryTag, lastSynchronizationTick, NBT_TICK_REGISTERED);
 
 		try {
 			var contraptionIdentifier = UUID.fromString(identifierValue);
 
 			return new WindmillLODEntry(contraptionIdentifier, dimensionIdentifier, anchorPosition, rotationAxis, bearingDirection,
-					planeWidth, planeHeight, planeDepth, rotationSpeed, rotationAngle, lastSynchronizationTick);
+					planeWidth, planeHeight, planeDepth, tickRegistered, rotationSpeed, rotationAngle, lastSynchronizationTick);
 		} catch (IllegalArgumentException ignored) {
 			return null;
 		}

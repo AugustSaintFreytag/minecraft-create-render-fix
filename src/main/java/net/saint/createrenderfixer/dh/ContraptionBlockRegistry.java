@@ -114,7 +114,8 @@ public final class ContraptionBlockRegistry {
 		var windmillData = resolveWindmillRegistrationData(entity, serverLevel);
 
 		if (windmillData != null) {
-			var planeSize = WindmillLODAnalysisUtil.getWindmillPlaneSize(contraption, windmillData.rotationAxis(), windmillData.bounds());
+			var planeSize = WindmillLODAnalysisUtil.getWindmillPlaneSize(contraption, windmillData.rotationAxis(),
+					windmillData.bounds());
 			registerWindmillEntry(contraptionId, serverLevel, dimensionId, windmillData, planeSize);
 			removeStoredBlocksForWindmill(dimensionId, anchorPosition, windmillData.bounds());
 
@@ -299,10 +300,11 @@ public final class ContraptionBlockRegistry {
 		var rotationSpeed = windmillData.windmillBearing().getAngularSpeed();
 		var rotationAngle = windmillData.windmillBearing().getInterpolatedAngle(1.0F);
 		var lastSynchronizationTick = serverLevel.getGameTime();
+		var tickRegistered = lastSynchronizationTick;
 		var bearingDirection = windmillData.bearingDirection();
 		var entry = new WindmillLODEntry(contraptionIdentifier, dimensionIdentifier, windmillData.controllerPosition(),
-				windmillData.rotationAxis(), bearingDirection, planeSize.width(), planeSize.height(), planeSize.depth(), rotationSpeed,
-				rotationAngle, lastSynchronizationTick);
+				windmillData.rotationAxis(), bearingDirection, planeSize.width(), planeSize.height(), planeSize.depth(), tickRegistered,
+				rotationSpeed, rotationAngle, lastSynchronizationTick);
 
 		WindmillLODManager.register(entry);
 		WindmillLODSyncUtil.broadcastUpdatePacket(serverLevel.getServer(), entry);
