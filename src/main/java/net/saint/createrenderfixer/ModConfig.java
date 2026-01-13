@@ -8,6 +8,12 @@ import me.shedaniel.cloth.clothconfig.shadowed.blue.endless.jankson.Comment;
 @Config(name = Mod.MOD_ID)
 public class ModConfig implements ConfigData {
 
+	// Logging
+
+	@ConfigEntry.Category("logging")
+	@Comment("Enable extra logging for debugging Create Render Fixer. (Default: false)")
+	public boolean enableLogging = false;
+
 	// Instances
 
 	@ConfigEntry.Category("instances")
@@ -32,13 +38,67 @@ public class ModConfig implements ConfigData {
 
 	@ConfigEntry.Category("instances")
 	@Comment("Blacklist of contraptions to exclude from instance freezing. Comma-separated list of ids.")
-	public String freezeInstanceBlacklist = "create:windmill_bearing";
+	public String freezeInstanceBlacklist = "create:contraption, create:windmill_bearing";
 
 	// LODs
 
 	@ConfigEntry.Category("lods")
 	@Comment("Enable injection of Create contraption blocks for LOD building with Distant Horizons. (Default: true)")
 	public boolean injectContraptionLODs = true;
+
+	// LODs (Windmill)
+
+	@ConfigEntry.Category("lods-windmill")
+	@Comment("Scale factor used to create an LOD representation of windmill blades. (Default: 1.0)")
+	public float windmillBladeLengthScale = 1.0f;
+
+	@ConfigEntry.Category("lods-windmill")
+	@Comment("Thickness in blocks used when constructing windmill blade LOD boxes. (Default: 0.5)")
+	public float windmillBladeThickness = 0.5f;
+
+	@ConfigEntry.Category("lods-windmill")
+	@Comment("Width factor applied to the blade depth when constructing LOD boxes. (Default: 0.5)")
+	public float windmillBladeWidthFactor = 0.5f;
+
+	@ConfigEntry.Category("lods-windmill")
+	@Comment("Minimum blade length used when constructing LOD boxes. (Default: 1.0)")
+	public float windmillBladeMinimumLength = 1.0f;
+
+	@ConfigEntry.Category("lods-windmill")
+	@Comment("Target blade segment length when constructing LOD boxes. (Default: 1.0)")
+	public float windmillBladeSegmentTargetLength = 1.0f;
+
+	@ConfigEntry.Category("lods-windmill")
+	@Comment("Blade length trimmed off each axis before segment generation. (Default: 2.0)")
+	public float windmillBladeLengthTrim = 2.0f;
+
+	@ConfigEntry.Category("lods-windmill")
+	@Comment("Minimum blade segment count used when constructing LOD boxes. (Default: 6)")
+	public int windmillBladeSegmentCountMinimum = 6;
+
+	@ConfigEntry.Category("lods-windmill")
+	@Comment("Maximum blade segment count used when constructing LOD boxes. (Default: 24)")
+	public int windmillBladeSegmentCountMaximum = 24;
+
+	@ConfigEntry.Category("lods-windmill")
+	@Comment("Maximum thickness scale multiplier used during blade rotation. (Default: 1.4)")
+	public float windmillBladeRotationThicknessScaleMaximum = 1.4f;
+
+	@ConfigEntry.Category("lods-windmill")
+	@Comment("Blade color as comma-separated red, green, and blue values. (Default: 250, 250, 250)")
+	public String windmillBladeColor = "250, 250, 250";
+
+	@ConfigEntry.Category("lods-windmill")
+	@Comment("Blade material used by Distant Horizons. Options: UNKNOWN, LEAVES, STONE, WOOD, METAL, DIRT, LAVA, DEEPSLATE, SNOW, SAND, TERRACOTTA, NETHER_STONE, WATER, GRASS, AIR, ILLUMINATED. (Default: WOOD)")
+	public String windmillBladeMaterial = "WOOD";
+
+	@ConfigEntry.Category("lods-windmill")
+	@Comment("Minimum rotation delta in degrees before LOD boxes update. (Default: 0.5)")
+	public float windmillRotationUpdateThreshold = 0.5f;
+
+	@ConfigEntry.Category("lods-windmill")
+	@Comment("Maximum render distance in blocks for windmill LODs. (Default: 2048)")
+	public float windmillMaximumRenderDistance = 2048.0f;
 
 	// Entities
 
