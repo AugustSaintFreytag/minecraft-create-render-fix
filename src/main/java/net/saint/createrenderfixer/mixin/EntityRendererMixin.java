@@ -8,7 +8,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.world.entity.Entity;
-import net.saint.createrenderfixer.ModConfig;
+import net.saint.createrenderfixer.Mod;
 import net.saint.createrenderfixer.utils.EntityDistanceUtil;
 
 @Mixin(EntityRenderer.class)
@@ -17,17 +17,22 @@ public abstract class EntityRendererMixin<T extends Entity> {
 	@Inject(method = "shouldRender", at = @At("HEAD"), cancellable = true)
 	private void crf$useChunkRenderDistance(T entity, Frustum frustum, double cameraX, double cameraY, double cameraZ,
 			CallbackInfoReturnable<Boolean> callbackInfo) {
-		if (!ModConfig.limitEntityRenderDistance()) {
+		if (!Mod.CONFIG.limitEntityRenderDistance || !Mod.CONFIG.limitEntityRenderDistanceAppliesToAll) {
 			return;
 		}
 
 		if (!EntityDistanceUtil.shouldRenderAtPosition(entity, cameraX, cameraZ)) {
 			callbackInfo.setReturnValue(false);
-
 			return;
 		}
 
 		var bounds = entity.getBoundingBoxForCulling();
+
+		if (bounds == null) {
+			return;
+		}
+
+		bounds.inflate(2.0);
 
 		if (!frustum.isVisible(bounds)) {
 			callbackInfo.setReturnValue(false);

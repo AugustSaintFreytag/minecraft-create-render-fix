@@ -22,7 +22,6 @@ import com.jozufozu.flywheel.backend.instancing.ratelimit.DistanceUpdateLimiter;
 
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.saint.createrenderfixer.Mod;
-import net.saint.createrenderfixer.ModConfig;
 import net.saint.createrenderfixer.utils.BlockEntityDistanceUtil;
 import net.saint.createrenderfixer.utils.FreezeConditionUtil;
 
@@ -92,7 +91,7 @@ public abstract class InstanceManagerMixin {
 			return;
 		}
 
-		if (!ModConfig.limitBlockEntityRenderDistance()) {
+		if (!Mod.CONFIG.limitBlockEntityRenderDistance) {
 			crf$restoreCulledBlockEntities();
 
 			return;

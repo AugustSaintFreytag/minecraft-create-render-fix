@@ -7,7 +7,6 @@ import com.seibel.distanthorizons.api.methods.events.abstractEvents.DhApiChunkPr
 import com.seibel.distanthorizons.api.methods.events.sharedParameterObjects.DhApiEventParam;
 
 import net.saint.createrenderfixer.Mod;
-import net.saint.createrenderfixer.ModConfig;
 
 /**
  * Injects contraption blocks into DH's chunk processing pipeline.
@@ -33,7 +32,7 @@ public final class DhChunkProcessingHandler extends DhApiChunkProcessingEvent {
 			return;
 		}
 
-		if (!ModConfig.injectContraptionLODs()) {
+		if (!Mod.CONFIG.injectContraptionLODs) {
 			return;
 		}
 

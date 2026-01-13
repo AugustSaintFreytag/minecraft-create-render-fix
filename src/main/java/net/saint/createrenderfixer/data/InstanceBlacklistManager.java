@@ -9,8 +9,8 @@ import com.jozufozu.flywheel.backend.instancing.blockentity.BlockEntityInstance;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.saint.createrenderfixer.ModConfig;
 import net.saint.createrenderfixer.mixin.BlockEntityInstanceAccessor;
+import net.saint.createrenderfixer.utils.EntityBlacklistManager;
 
 public final class InstanceBlacklistManager {
 
@@ -42,7 +42,7 @@ public final class InstanceBlacklistManager {
 			}
 
 			var blockId = BuiltInRegistries.BLOCK.getKey(block);
-			var blockIsBlacklisted = ModConfig.freezeBlacklist().contains(blockId);
+			var blockIsBlacklisted = EntityBlacklistManager.isBlacklisted(blockId);
 
 			return blockIsBlacklisted;
 		}, false);

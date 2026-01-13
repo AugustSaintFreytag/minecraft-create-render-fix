@@ -3,7 +3,7 @@ package net.saint.createrenderfixer.utils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.Vec3;
-import net.saint.createrenderfixer.ModConfig;
+import net.saint.createrenderfixer.Mod;
 
 public final class EntityDistanceUtil {
 
@@ -57,7 +57,7 @@ public final class EntityDistanceUtil {
 
 	private static int getMaxDistanceForWorld() {
 		var renderDistanceBlocks = getMaxUnboundedDistanceForWorld();
-		var offsetBlocks = ModConfig.entityLODDistanceOffset();
+		var offsetBlocks = Mod.CONFIG.entityLODDistanceOffset;
 		var maxDistance = renderDistanceBlocks - offsetBlocks;
 
 		if (maxDistance > renderDistanceBlocks) {

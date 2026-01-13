@@ -1,7 +1,7 @@
 package net.saint.createrenderfixer.utils;
 
 import net.minecraft.core.BlockPos;
-import net.saint.createrenderfixer.ModConfig;
+import net.saint.createrenderfixer.Mod;
 
 public final class BlockEntityDistanceUtil {
 
@@ -31,7 +31,7 @@ public final class BlockEntityDistanceUtil {
 
 	private static int getMaxDistanceForWorld() {
 		var renderDistanceBlocks = EntityDistanceUtil.getMaxUnboundedDistanceForWorld();
-		var offsetBlocks = ModConfig.blockEntityLODDistanceOffset();
+		var offsetBlocks = Mod.CONFIG.blockEntityLODDistanceOffset;
 		var maxDistance = renderDistanceBlocks - offsetBlocks;
 
 		if (maxDistance < 0) {

@@ -10,7 +10,7 @@ import com.jozufozu.flywheel.event.BeginFrameEvent;
 import com.simibubi.create.content.contraptions.Contraption;
 import com.simibubi.create.content.contraptions.render.ContraptionRenderInfo;
 
-import net.saint.createrenderfixer.ModConfig;
+import net.saint.createrenderfixer.Mod;
 import net.saint.createrenderfixer.utils.EntityDistanceUtil;
 
 @Mixin(value = ContraptionRenderInfo.class, remap = false)
@@ -28,7 +28,7 @@ public abstract class ContraptionRenderInfoMixin {
 
 	@Inject(method = "beginFrame", at = @At("TAIL"))
 	private void crf$applyEntityDistanceCulling(BeginFrameEvent event, CallbackInfo callbackInfo) {
-		if (!ModConfig.limitEntityRenderDistance() || !visible) {
+		if (!Mod.CONFIG.limitEntityRenderDistance || !visible) {
 			return;
 		}
 

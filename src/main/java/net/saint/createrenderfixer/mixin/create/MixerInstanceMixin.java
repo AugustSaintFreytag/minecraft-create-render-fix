@@ -14,7 +14,7 @@ import com.simibubi.create.content.kinetics.mixer.MechanicalMixerBlockEntity;
 import com.simibubi.create.content.kinetics.mixer.MixerInstance;
 import com.simibubi.create.foundation.utility.AnimationTickHolder;
 
-import net.saint.createrenderfixer.ModConfig;
+import net.saint.createrenderfixer.Mod;
 
 @Mixin(MixerInstance.class)
 public abstract class MixerInstanceMixin {
@@ -49,7 +49,7 @@ public abstract class MixerInstanceMixin {
 
 	@Inject(method = "beginFrame", at = @At("HEAD"), cancellable = true, remap = false)
 	private void crf$cacheAndFreeze(CallbackInfo callbackInfo) {
-		if (!ModConfig.cacheDynamicInstances()) {
+		if (!Mod.CONFIG.cacheDynamicInstances) {
 			return;
 		}
 

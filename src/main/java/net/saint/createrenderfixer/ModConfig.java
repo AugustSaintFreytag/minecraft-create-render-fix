@@ -1,238 +1,125 @@
 package net.saint.createrenderfixer;
 
-import java.util.Collections;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
+import me.shedaniel.autoconfig.ConfigData;
+import me.shedaniel.autoconfig.annotation.Config;
+import me.shedaniel.autoconfig.annotation.ConfigEntry;
+import me.shedaniel.cloth.clothconfig.shadowed.blue.endless.jankson.Comment;
 
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.level.block.entity.BlockEntityType;
+@Config(name = Mod.MOD_ID)
+public class ModConfig implements ConfigData {
 
-/**
- * Lightweight runtime-tweakable flags for Flywheel/Create instancing mitigations.
- *
- * These are intentionally kept simple (static + volatile) so they can be flipped from client
- * commands without any serialization layer.
- */
-public final class ModConfig {
+	// Instances
 
-	// Properties
+	@ConfigEntry.Category("instances")
+	@Comment("Enable state caching on supported dynamic instances to prevent re-render when state is unmodified. (Default: true)")
+	public boolean cacheDynamicInstances = true;
 
-	private static volatile boolean forceDisableRateLimiting = false;
+	@ConfigEntry.Category("instances")
+	@Comment("Freeze dynamic instances once they're above a certain block distance from the player. (Default: true)")
+	public boolean freezeDistantInstances = true;
 
-	private static volatile boolean cacheDynamicInstances = true;
+	@ConfigEntry.Category("instances")
+	@Comment("Distance in blocks to freeze dynamic instances. Recommended < 64 to cut in before Create limits tick rate. (Default: 62)")
+	public int freezeDistantInstancesRange = 62;
 
-	private static volatile boolean freezeDistantInstances = true;
+	@ConfigEntry.Category("instances")
+	@Comment("Freeze dynamic instances when they're in an occluded chunk. Not effective due to subpar engine occlusion checks. (Default: false)")
+	public boolean freezeOccludedInstances = false;
 
-	private static volatile boolean freezeOccludedInstances = true;
+	@ConfigEntry.Category("instances")
+	@Comment("Force-disables the tick-based rate limiter on Create dynamic instances. Generally not needed or effective. (Default: false)")
+	public boolean forceDisableRateLimiting = false;
 
-	private static volatile boolean injectContraptionLODs = true;
+	@ConfigEntry.Category("instances")
+	@Comment("Blacklist of contraptions to exclude from instance freezing. Comma-separated list of ids.")
+	public String freezeInstanceBlacklist = "create:contraption, create:windmill_bearing";
 
-	private static volatile int freezeDistantInstancesRange = 62;
+	// LODs
 
-	private static volatile boolean limitEntityRenderDistance = true;
+	@ConfigEntry.Category("lods")
+	@Comment("Enable injection of Create contraption blocks for LOD building with Distant Horizons. (Default: true)")
+	public boolean injectContraptionLODs = true;
 
-	private static volatile boolean limitBlockEntityRenderDistance = true;
+	// LODs (Windmill)
 
-	private static volatile int entityLODDistanceOffset = 0;
+	@ConfigEntry.Category("lods-windmill")
+	@Comment("Scale factor used to create an LOD representation of windmill blades. (Default: 1.0)")
+	public float windmillBladeLengthScale = 1.0f;
 
-	private static volatile int blockEntityLODDistanceOffset = 0;
+	@ConfigEntry.Category("lods-windmill")
+	@Comment("Thickness in blocks used when constructing windmill blade LOD boxes. (Default: 0.5)")
+	public float windmillBladeThickness = 0.5f;
 
-	private static final Set<ResourceLocation> freezeBlacklist = ConcurrentHashMap.newKeySet();
+	@ConfigEntry.Category("lods-windmill")
+	@Comment("Width factor applied to the blade depth when constructing LOD boxes. (Default: 0.5)")
+	public float windmillBladeWidthFactor = 0.5f;
 
-	// Accessors
+	@ConfigEntry.Category("lods-windmill")
+	@Comment("Minimum blade length used when constructing LOD boxes. (Default: 1.0)")
+	public float windmillBladeMinimumLength = 1.0f;
 
-	public static boolean forceDisableRateLimiting() {
-		return forceDisableRateLimiting;
-	}
+	@ConfigEntry.Category("lods-windmill")
+	@Comment("Target blade segment length when constructing LOD boxes. (Default: 1.0)")
+	public float windmillBladeSegmentTargetLength = 1.0f;
 
-	public static boolean cacheDynamicInstances() {
-		return cacheDynamicInstances;
-	}
+	@ConfigEntry.Category("lods-windmill")
+	@Comment("Blade length trimmed off each axis before segment generation. (Default: 2.0)")
+	public float windmillBladeLengthTrim = 2.0f;
 
-	public static boolean freezeDistantInstances() {
-		return freezeDistantInstances;
-	}
+	@ConfigEntry.Category("lods-windmill")
+	@Comment("Minimum blade segment count used when constructing LOD boxes. (Default: 6)")
+	public int windmillBladeSegmentCountMinimum = 6;
 
-	public static boolean freezeOccludedInstances() {
-		return freezeOccludedInstances;
-	}
+	@ConfigEntry.Category("lods-windmill")
+	@Comment("Maximum blade segment count used when constructing LOD boxes. (Default: 24)")
+	public int windmillBladeSegmentCountMaximum = 24;
 
-	public static boolean injectContraptionLODs() {
-		return injectContraptionLODs;
-	}
+	@ConfigEntry.Category("lods-windmill")
+	@Comment("Maximum thickness scale multiplier used during blade rotation. (Default: 1.4)")
+	public float windmillBladeRotationThicknessScaleMaximum = 1.4f;
 
-	public static int freezeDistantInstancesRange() {
-		return freezeDistantInstancesRange;
-	}
+	@ConfigEntry.Category("lods-windmill")
+	@Comment("Blade color as comma-separated red, green, and blue values. (Default: 250, 250, 250)")
+	public String windmillBladeColor = "250, 250, 250";
 
-	public static Set<ResourceLocation> freezeBlacklist() {
-		return Collections.unmodifiableSet(freezeBlacklist);
-	}
+	@ConfigEntry.Category("lods-windmill")
+	@Comment("Blade material used by Distant Horizons. Options: UNKNOWN, LEAVES, STONE, WOOD, METAL, DIRT, LAVA, DEEPSLATE, SNOW, SAND, TERRACOTTA, NETHER_STONE, WATER, GRASS, AIR, ILLUMINATED. (Default: WOOD)")
+	public String windmillBladeMaterial = "WOOD";
 
-	public static boolean limitEntityRenderDistance() {
-		return limitEntityRenderDistance;
-	}
+	@ConfigEntry.Category("lods-windmill")
+	@Comment("Minimum rotation delta in degrees before LOD boxes update. (Default: 0.5)")
+	public float windmillRotationUpdateThreshold = 0.5f;
 
-	public static boolean limitBlockEntityRenderDistance() {
-		return limitBlockEntityRenderDistance;
-	}
+	@ConfigEntry.Category("lods-windmill")
+	@Comment("Maximum render distance in blocks for windmill LODs. (Default: 2048)")
+	public float windmillMaximumRenderDistance = 2048.0f;
 
-	public static int entityLODDistanceOffset() {
-		return entityLODDistanceOffset;
-	}
+	// Entities
 
-	public static int blockEntityLODDistanceOffset() {
-		return blockEntityLODDistanceOffset;
-	}
+	@ConfigEntry.Category("entities")
+	@Comment("Limit entity render distance. (Default: true)")
+	public boolean limitEntityRenderDistance = true;
 
-	public static void setForceDisableRateLimiting(boolean value) {
-		forceDisableRateLimiting = value;
-		Mod.LOGGER.info("Force disable rate limiting set to {}", value ? "ENABLED" : "DISABLED");
-		save();
-	}
+	@ConfigEntry.Category("entities")
+	@Comment("Apply entity render distance limit to all entities, not just Create entities. (Default: false)")
+	public boolean limitEntityRenderDistanceAppliesToAll = false;
 
-	public static void setCacheDynamicInstances(boolean value) {
-		cacheDynamicInstances = value;
-		Mod.LOGGER.info("Instance data caching set to {}", value ? "ENABLED" : "DISABLED");
-		save();
-	}
+	@ConfigEntry.Category("entities")
+	@Comment("Offset added to entity LOD distance thresholds. (Default: 0)")
+	public int entityLODDistanceOffset = 0;
 
-	public static void setFreezeDistantInstances(boolean value) {
-		freezeDistantInstances = value;
-		Mod.LOGGER.info("Freezing distant instances set to {}", value ? "ENABLED" : "DISABLED");
-		save();
-	}
+	@ConfigEntry.Category("entities")
+	@Comment("Limit block entity render distance to respect LOD thresholds. (Default: true)")
+	public boolean limitBlockEntityRenderDistance = true;
 
-	public static void setFreezeOccludedInstances(boolean value) {
-		freezeOccludedInstances = value;
-		Mod.LOGGER.info("Freezing occluded instances set to {}", value ? "ENABLED" : "DISABLED");
-		save();
-	}
-
-	public static void setInjectContraptionLODs(boolean value) {
-		injectContraptionLODs = value;
-		var status = value ? "ENABLED" : "DISABLED";
-		Mod.LOGGER.info("Contraption LOD injection set to '{}'.", status);
-		save();
-	}
-
-	public static void setFreezeDistantInstancesRange(int blocks) {
-		freezeDistantInstancesRange = Math.max(0, blocks);
-		Mod.LOGGER.info("Freeze distance set to {} blocks", freezeDistantInstancesRange);
-		save();
-	}
-
-	public static void addFreezeBlacklist(ResourceLocation id) {
-		if (freezeBlacklist.add(id)) {
-			Mod.LOGGER.info("Added {} to freeze blacklist", id);
-			save();
-		}
-	}
-
-	public static void removeFreezeBlacklist(ResourceLocation id) {
-		if (freezeBlacklist.remove(id)) {
-			Mod.LOGGER.info("Removed {} from freeze blacklist", id);
-			save();
-		}
-	}
-
-	public static void clearFreezeBlacklist() {
-		freezeBlacklist.clear();
-		Mod.LOGGER.info("Cleared freeze blacklist");
-		save();
-	}
-
-	public static boolean isFreezeBlacklisted(BlockEntityType<?> type) {
-		var id = BuiltInRegistries.BLOCK_ENTITY_TYPE.getKey(type);
-		return id != null && freezeBlacklist.contains(id);
-	}
-
-	public static void setLimitEntityRenderDistance(boolean value) {
-		limitEntityRenderDistance = value;
-		Mod.LOGGER.info("Entity render distance limiting set to {}", value ? "ENABLED" : "DISABLED");
-		save();
-	}
-
-	public static void setLimitBlockEntityRenderDistance(boolean value) {
-		limitBlockEntityRenderDistance = value;
-		var status = getStatusForToggle(value);
-		Mod.LOGGER.info("Block entity render distance limiting set to '{}'.", status);
-		save();
-	}
-
-	public static void setEntityLODDistanceOffset(int value) {
-		entityLODDistanceOffset = value;
-		Mod.LOGGER.info("Entity distance LOD offset set to {}", value);
-		save();
-	}
-
-	public static void setBlockEntityLODDistanceOffset(int value) {
-		blockEntityLODDistanceOffset = value;
-		Mod.LOGGER.info("Block entity LOD distance offset set to '{}'.", blockEntityLODDistanceOffset);
-		save();
-	}
+	@ConfigEntry.Category("entities")
+	@Comment("Offset added to block entity LOD distance thresholds. (Default: 0)")
+	public int blockEntityLODDistanceOffset = 0;
 
 	// Debug
 
-	public static String debugDescription() {
-		return "forceDisableRateLimiting=" + forceDisableRateLimiting + ", cacheDynamicInstances=" + cacheDynamicInstances
-				+ ", freezeDistantInstances=" + freezeDistantInstances + ", freezeOccludedInstances=" + freezeOccludedInstances
-				+ ", injectContraptionLODs=" + injectContraptionLODs + ", freezeDistanceBlocks=" + freezeDistantInstancesRange
-				+ ", freezeBlacklist=" + freezeBlacklist + ", limitEntityRenderDistance=" + limitEntityRenderDistance
-				+ ", limitBlockEntityRenderDistance=" + limitBlockEntityRenderDistance + ", entityLODDistanceOffset="
-				+ entityLODDistanceOffset + ", blockEntityLODDistanceOffset=" + blockEntityLODDistanceOffset;
-	}
+	@ConfigEntry.Category("debug")
+	@Comment("Enables logging for lifecycles, registrations, updates, removals. (Default: false)")
+	public boolean enableLogging = false;
 
-	// Persistence
-
-	public static void load() {
-		var data = ModConfigLoad.load(snapshot());
-		applyLoadedData(data);
-	}
-
-	private static void save() {
-		ModConfigLoad.save(snapshot());
-	}
-
-	private static ModConfigLoad.Data snapshot() {
-		return new ModConfigLoad.Data(cacheDynamicInstances, freezeDistantInstances, freezeOccludedInstances, injectContraptionLODs,
-				freezeDistantInstancesRange, freezeBlacklist.stream().map(ResourceLocation::toString).toList());
-	}
-
-	private static void applyLoadedData(ModConfigLoad.Data data) {
-		cacheDynamicInstances = data.cacheDynamicInstances();
-		freezeDistantInstances = data.freezeDistantInstances();
-		freezeOccludedInstances = data.freezeOccludedInstances();
-		injectContraptionLODs = resolveInjectContraptionLODs(data);
-		freezeDistantInstancesRange = Math.max(0, data.freezeBlockDistance());
-
-		freezeBlacklist.clear();
-
-		for (var id : data.freezeBlacklist()) {
-			try {
-				freezeBlacklist.add(new ResourceLocation(id));
-			} catch (Exception exception) {
-				Mod.LOGGER.warn("Skipping invalid resource id {} in config", id, exception);
-			}
-		}
-	}
-
-	private static boolean resolveInjectContraptionLODs(ModConfigLoad.Data data) {
-		var injectContraptionLODs = data.injectContraptionLODs();
-
-		if (injectContraptionLODs == null) {
-			return true;
-		}
-
-		return injectContraptionLODs;
-	}
-
-	private static String getStatusForToggle(boolean value) {
-		if (value) {
-			return "ENABLED";
-		}
-
-		return "DISABLED";
-	}
 }
