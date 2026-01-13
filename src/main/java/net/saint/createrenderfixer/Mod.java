@@ -20,6 +20,7 @@ import net.saint.createrenderfixer.dh.WindmillLODServerTracker;
 import net.saint.createrenderfixer.network.WindmillLODSyncUtil;
 import net.saint.createrenderfixer.utils.EntityBlacklistManager;
 import net.saint.createrenderfixer.utils.Logger;
+import net.saint.createrenderfixer.utils.WindmillLODMaterialManager;
 
 public class Mod implements ModInitializer {
 
@@ -45,6 +46,8 @@ public class Mod implements ModInitializer {
 
 		AutoConfig.getConfigHolder(ModConfig.class).registerSaveListener((config, data) -> {
 			EntityBlacklistManager.reloadFromConfig();
+			WindmillLODMaterialManager.reloadFromConfig();
+
 			return null;
 		});
 
@@ -61,6 +64,7 @@ public class Mod implements ModInitializer {
 		// Load
 
 		EntityBlacklistManager.reloadFromConfig();
+		WindmillLODMaterialManager.reloadFromConfig();
 	}
 
 	private void initDistantHorizonsInterop() {
