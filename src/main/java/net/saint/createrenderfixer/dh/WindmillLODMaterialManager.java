@@ -1,10 +1,12 @@
-package net.saint.createrenderfixer.utils;
+package net.saint.createrenderfixer.dh;
 
 import java.awt.Color;
 
 import com.seibel.distanthorizons.api.enums.rendering.EDhApiBlockMaterial;
 
 import net.saint.createrenderfixer.Mod;
+import net.saint.createrenderfixer.utils.ConfigColorUtil;
+import net.saint.createrenderfixer.utils.DHBlockMaterialUtil;
 
 public final class WindmillLODMaterialManager {
 
