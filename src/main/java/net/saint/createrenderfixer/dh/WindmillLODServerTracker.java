@@ -83,9 +83,11 @@ public final class WindmillLODServerTracker {
 		}
 
 		synchronizeEntry(server, entry, rotationSpeed, predictedAngle, currentTick);
-		// Mod.LOGGER.info("Synchronized windmill LOD entry for contraption '{}' with predicted
-		// angle {} in ticking chunk.",
-		// entry.contraptionId, predictedAngle);
+
+		if (Mod.CONFIG.enableLogging) {
+			Mod.LOGGER.info("Synchronized windmill LOD entry for contraption '{}' with predicted angle '{}' in ticking chunk.",
+					entry.contraptionId, predictedAngle);
+		}
 	}
 
 	private static void updateEntryForNonTickingChunk(MinecraftServer server, ServerLevel level, WindmillLODEntry entry,
@@ -103,9 +105,11 @@ public final class WindmillLODServerTracker {
 		}
 
 		synchronizeEntry(server, entry, rotationSpeed, predictedAngle, currentTick);
-		// Mod.LOGGER.info("Synchronized windmill LOD entry for contraption '{}' with predicted
-		// angle {} in non-ticking chunk.",
-		// entry.contraptionId, predictedAngle);
+
+		if (Mod.CONFIG.enableLogging) {
+			Mod.LOGGER.info("Synchronized windmill LOD entry for contraption '{}' with predicted angle '{}' in non-ticking chunk.",
+					entry.contraptionId, predictedAngle);
+		}
 	}
 
 	private static void applyPredictedRotationToBearing(WindmillBearingBlockEntity windmillBearing, WindmillLODEntry entry,
@@ -120,14 +124,17 @@ public final class WindmillLODServerTracker {
 			windmillBearing.setAngle(rotationAngle);
 			accessor.setPreviousAngle(rotationAngle);
 
-			// Mod.LOGGER.info("Overwrote windmill bearing angle from '{}' to '{}' for contraption
-			// '{}' due to '{}'.", previousAngle,
-			// rotationAngle, entry.contraptionId, reason);
+			if (Mod.CONFIG.enableLogging) {
+				Mod.LOGGER.info("Overwrote windmill bearing angle from '{}' to '{}' for contraption '{}' due to '{}'.", previousAngle,
+						rotationAngle, entry.contraptionId, reason);
+			}
+
 			return;
 		}
 
-		// Mod.LOGGER.info("Overwrote windmill bearing angle from '{}' to '{}' due to '{}'.",
-		// previousAngle, rotationAngle, reason);
+		if (Mod.CONFIG.enableLogging) {
+			Mod.LOGGER.info("Overwrote windmill bearing angle from '{}' to '{}' due to '{}'.", previousAngle, rotationAngle, reason);
+		}
 
 	}
 
