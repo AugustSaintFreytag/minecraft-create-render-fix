@@ -27,34 +27,17 @@ import net.saint.createrenderfixer.Mod;
 import net.saint.createrenderfixer.dh.DhBridge;
 import net.saint.createrenderfixer.dh.WindmillLODEntry;
 import net.saint.createrenderfixer.dh.WindmillLODManager;
+import net.saint.createrenderfixer.utils.WindmillLODMaterialManager;
 
 public final class WindmillLODRenderManager {
 
 	// Configuration
-
-	private static final float BLADE_LENGTH_SCALE = 1.0F;
-	private static final float BLADE_THICKNESS = 0.5F;
-	private static final float BLADE_WIDTH_FACTOR = 0.5F;
-	private static final float MIN_BLADE_LENGTH = 1.0F;
-	private static final float ROTATION_UPDATE_THRESHOLD = 0.25F;
-	private static final float TARGET_SEGMENT_LENGTH = 1.0F;
-	private static final float BLADE_LENGTH_TRIM = 2.0F;
 
 	private static final float LOD_CLIP_DISTANCE_PADDING = 16.0F;
 	private static final float LOD_CLIP_DISTANCE_OFFSET = 16.0F;
 
 	private static final float HEIGHT_CLIP_DISTANCE_OVERRIDE = 1.0F;
 	private static final int HEIGHT_CLIP_DISTANCE_PADDING = 1_000;
-
-	private static final float MAX_RENDER_DISTANCE = 2_048.0F;
-
-	private static final float ROTATION_MAX_THICKNESS_SCALE = 1.4F;
-
-	private static final int MIN_SEGMENT_COUNT = 6;
-	private static final int MAX_SEGMENT_COUNT = 24;
-
-	private static final Color WINDMILL_CROSS_COLOR = new Color(250, 250, 250);
-	private static final EDhApiBlockMaterial WINDMILL_CROSS_MATERIAL = EDhApiBlockMaterial.SNOW;
 
 	// State
 
@@ -64,6 +47,9 @@ public final class WindmillLODRenderManager {
 	// Models
 
 	private record BladeLengths(float widthLength, float heightLength) {
+	}
+
+	private record BladeSegmentCounts(int widthSegmentCount, int heightSegmentCount) {
 	}
 
 	// Ticking
@@ -154,8 +140,9 @@ public final class WindmillLODRenderManager {
 
 		if (lastAngle != null) {
 			var rotationDelta = getRotationDeltaForAngles(lastAngle, renderAngle);
+			var rotationUpdateThreshold = Mod.CONFIG.windmillRotationUpdateThreshold;
 
-			if (rotationDelta < ROTATION_UPDATE_THRESHOLD) {
+			if (rotationDelta < rotationUpdateThreshold) {
 				return;
 			}
 		}
@@ -192,92 +179,78 @@ public final class WindmillLODRenderManager {
 	// Geometry
 
 	private static List<DhApiRenderableBox> getWindmillCrossBoxesForEntry(WindmillLODEntry entry, float rotationAngle) {
-		var bladeLengths = getBladeLengthsForEntry(entry);
+		var bladeGeometry = entry.bladeGeometry;
+		var bladeLengths = new BladeLengths(bladeGeometry.widthLength(), bladeGeometry.heightLength());
+		var segmentCounts = new BladeSegmentCounts(bladeGeometry.widthSegmentCount(), bladeGeometry.heightSegmentCount());
 		var bladeThickness = getBladeThickness();
-		var bladeWidth = getBladeWidthForEntry(entry);
+		var bladeWidth = bladeGeometry.bladeWidth();
 		var thicknessScale = getThicknessScaleForRotationAngle(rotationAngle);
-		var baseBoxes = getCrossBoxesForAxis(entry.rotationAxis, bladeLengths, bladeWidth, bladeThickness, thicknessScale);
+		var bladeColor = getBladeColor();
+		var bladeMaterial = getBladeMaterial();
+		var baseBoxes = getCrossBoxesForAxis(entry.rotationAxis, bladeLengths, segmentCounts, bladeWidth, bladeThickness, thicknessScale,
+				bladeColor, bladeMaterial);
 
 		return rotateBoxesForAxis(baseBoxes, entry.rotationAxis, rotationAngle);
 	}
 
-	private static BladeLengths getBladeLengthsForEntry(WindmillLODEntry entry) {
-		var widthLength = getBladeLengthForPlane(entry.planeWidth);
-		var heightLength = getBladeLengthForPlane(entry.planeHeight);
-
-		return new BladeLengths(widthLength, heightLength);
-	}
-
-	private static float getBladeLengthForPlane(float planeSize) {
-		var length = planeSize * BLADE_LENGTH_SCALE - BLADE_LENGTH_TRIM;
-
-		if (length < MIN_BLADE_LENGTH) {
-			return MIN_BLADE_LENGTH;
-		}
-
-		return length;
-	}
-
 	private static float getBladeThickness() {
-		return BLADE_THICKNESS;
+		return Mod.CONFIG.windmillBladeThickness;
 	}
 
-	private static float getBladeWidthForEntry(WindmillLODEntry entry) {
-		var thickestBladeWidth = getThickestBladeWidthForEntry(entry);
-		var bladeWidth = thickestBladeWidth * BLADE_WIDTH_FACTOR;
-
-		return bladeWidth;
+	private static Color getBladeColor() {
+		return WindmillLODMaterialManager.getBladeColor();
 	}
 
-	private static float getThickestBladeWidthForEntry(WindmillLODEntry entry) {
-		return entry.planeDepth;
+	private static EDhApiBlockMaterial getBladeMaterial() {
+		return WindmillLODMaterialManager.getBladeMaterial();
 	}
 
-	private static List<DhApiRenderableBox> getCrossBoxesForAxis(Direction.Axis rotationAxis, BladeLengths bladeLengths, float bladeWidth,
-			float bladeThickness, float thicknessScale) {
+	private static List<DhApiRenderableBox> getCrossBoxesForAxis(Direction.Axis rotationAxis, BladeLengths bladeLengths,
+			BladeSegmentCounts segmentCounts, float bladeWidth, float bladeThickness, float thicknessScale, Color bladeColor,
+			EDhApiBlockMaterial bladeMaterial) {
 		return switch (rotationAxis) {
-		case X -> getCrossBoxesForXAxis(bladeLengths, bladeWidth, bladeThickness, thicknessScale);
-		case Y -> getCrossBoxesForYAxis(bladeLengths, bladeWidth, bladeThickness, thicknessScale);
-		case Z -> getCrossBoxesForZAxis(bladeLengths, bladeWidth, bladeThickness, thicknessScale);
+		case X -> getCrossBoxesForXAxis(bladeLengths, segmentCounts, bladeWidth, bladeThickness, thicknessScale, bladeColor, bladeMaterial);
+		case Y -> getCrossBoxesForYAxis(bladeLengths, segmentCounts, bladeWidth, bladeThickness, thicknessScale, bladeColor, bladeMaterial);
+		case Z -> getCrossBoxesForZAxis(bladeLengths, segmentCounts, bladeWidth, bladeThickness, thicknessScale, bladeColor, bladeMaterial);
 		};
 	}
 
-	private static List<DhApiRenderableBox> getCrossBoxesForXAxis(BladeLengths bladeLengths, float bladeWidth, float bladeThickness,
-			float thicknessScale) {
+	private static List<DhApiRenderableBox> getCrossBoxesForXAxis(BladeLengths bladeLengths, BladeSegmentCounts segmentCounts,
+			float bladeWidth, float bladeThickness, float thicknessScale, Color bladeColor, EDhApiBlockMaterial bladeMaterial) {
 		var boxes = new ArrayList<DhApiRenderableBox>();
-		addBladeSegmentsForAxis(boxes, Direction.Axis.Z, Direction.Axis.X, bladeLengths.widthLength(), bladeWidth, bladeThickness,
-				thicknessScale);
-		addBladeSegmentsForAxis(boxes, Direction.Axis.Y, Direction.Axis.X, bladeLengths.heightLength(), bladeWidth, bladeThickness,
-				thicknessScale);
+		addBladeSegmentsForAxis(boxes, Direction.Axis.Z, Direction.Axis.X, bladeLengths.widthLength(), segmentCounts.widthSegmentCount(),
+				bladeWidth, bladeThickness, thicknessScale, bladeColor, bladeMaterial);
+		addBladeSegmentsForAxis(boxes, Direction.Axis.Y, Direction.Axis.X, bladeLengths.heightLength(), segmentCounts.heightSegmentCount(),
+				bladeWidth, bladeThickness, thicknessScale, bladeColor, bladeMaterial);
 
 		return boxes;
 	}
 
-	private static List<DhApiRenderableBox> getCrossBoxesForYAxis(BladeLengths bladeLengths, float bladeWidth, float bladeThickness,
-			float thicknessScale) {
+	private static List<DhApiRenderableBox> getCrossBoxesForYAxis(BladeLengths bladeLengths, BladeSegmentCounts segmentCounts,
+			float bladeWidth, float bladeThickness, float thicknessScale, Color bladeColor, EDhApiBlockMaterial bladeMaterial) {
 		var boxes = new ArrayList<DhApiRenderableBox>();
-		addBladeSegmentsForAxis(boxes, Direction.Axis.X, Direction.Axis.Y, bladeLengths.widthLength(), bladeWidth, bladeThickness,
-				thicknessScale);
-		addBladeSegmentsForAxis(boxes, Direction.Axis.Z, Direction.Axis.Y, bladeLengths.heightLength(), bladeWidth, bladeThickness,
-				thicknessScale);
+		addBladeSegmentsForAxis(boxes, Direction.Axis.X, Direction.Axis.Y, bladeLengths.widthLength(), segmentCounts.widthSegmentCount(),
+				bladeWidth, bladeThickness, thicknessScale, bladeColor, bladeMaterial);
+		addBladeSegmentsForAxis(boxes, Direction.Axis.Z, Direction.Axis.Y, bladeLengths.heightLength(), segmentCounts.heightSegmentCount(),
+				bladeWidth, bladeThickness, thicknessScale, bladeColor, bladeMaterial);
 
 		return boxes;
 	}
 
-	private static List<DhApiRenderableBox> getCrossBoxesForZAxis(BladeLengths bladeLengths, float bladeWidth, float bladeThickness,
-			float thicknessScale) {
+	private static List<DhApiRenderableBox> getCrossBoxesForZAxis(BladeLengths bladeLengths, BladeSegmentCounts segmentCounts,
+			float bladeWidth, float bladeThickness, float thicknessScale, Color bladeColor, EDhApiBlockMaterial bladeMaterial) {
 		var boxes = new ArrayList<DhApiRenderableBox>();
-		addBladeSegmentsForAxis(boxes, Direction.Axis.X, Direction.Axis.Z, bladeLengths.widthLength(), bladeWidth, bladeThickness,
-				thicknessScale);
-		addBladeSegmentsForAxis(boxes, Direction.Axis.Y, Direction.Axis.Z, bladeLengths.heightLength(), bladeWidth, bladeThickness,
-				thicknessScale);
+		addBladeSegmentsForAxis(boxes, Direction.Axis.X, Direction.Axis.Z, bladeLengths.widthLength(), segmentCounts.widthSegmentCount(),
+				bladeWidth, bladeThickness, thicknessScale, bladeColor, bladeMaterial);
+		addBladeSegmentsForAxis(boxes, Direction.Axis.Y, Direction.Axis.Z, bladeLengths.heightLength(), segmentCounts.heightSegmentCount(),
+				bladeWidth, bladeThickness, thicknessScale, bladeColor, bladeMaterial);
 
 		return boxes;
 	}
 
 	private static void addBladeSegmentsForAxis(List<DhApiRenderableBox> boxes, Direction.Axis bladeAxis, Direction.Axis rotationAxis,
-			float bladeLength, float bladeWidth, float bladeThickness, float thicknessScale) {
-		var segmentCount = getSegmentCountForBladeLength(bladeLength);
+			float bladeLength, int segmentCount, float bladeWidth, float bladeThickness, float thicknessScale, Color bladeColor,
+			EDhApiBlockMaterial bladeMaterial) {
 		var segmentLength = bladeLength / segmentCount;
 		var halfSegmentLength = segmentLength / 2.0F;
 		var startOffset = -bladeLength / 2.0F + halfSegmentLength;
@@ -325,7 +298,7 @@ public final class WindmillLODRenderManager {
 			}
 			}
 
-			boxes.add(createBox(minimumX, minimumY, minimumZ, maximumX, maximumY, maximumZ));
+			boxes.add(createBox(minimumX, minimumY, minimumZ, maximumX, maximumY, maximumZ, bladeColor, bladeMaterial));
 		}
 	}
 
@@ -339,38 +312,21 @@ public final class WindmillLODRenderManager {
 		return bladeAxis;
 	}
 
-	private static int getSegmentCountForBladeLength(float bladeLength) {
-		var segmentCount = Math.round(bladeLength / TARGET_SEGMENT_LENGTH);
-
-		if (segmentCount < MIN_SEGMENT_COUNT) {
-			segmentCount = MIN_SEGMENT_COUNT;
-		}
-
-		if (segmentCount > MAX_SEGMENT_COUNT) {
-			segmentCount = MAX_SEGMENT_COUNT;
-		}
-
-		if (segmentCount < 1) {
-			segmentCount = 1;
-		}
-
-		return segmentCount;
-	}
-
 	private static float getThicknessScaleForRotationAngle(float rotationAngle) {
 		var radians = Math.toRadians(rotationAngle);
 		var weight = (Math.cos(radians * 4.0) + 1.0) / 2.0;
-		var scale = 1.0 + (ROTATION_MAX_THICKNESS_SCALE - 1.0) * weight;
+		var maximumThicknessScale = Mod.CONFIG.windmillBladeRotationThicknessScaleMaximum;
+		var scale = 1.0 + (maximumThicknessScale - 1.0) * weight;
 
 		return (float) scale;
 	}
 
 	private static DhApiRenderableBox createBox(double minimumX, double minimumY, double minimumZ, double maximumX, double maximumY,
-			double maximumZ) {
+			double maximumZ, Color bladeColor, EDhApiBlockMaterial bladeMaterial) {
 		var minimumPos = new DhApiVec3d(minimumX, minimumY, minimumZ);
 		var maximumPos = new DhApiVec3d(maximumX, maximumY, maximumZ);
 
-		return new DhApiRenderableBox(minimumPos, maximumPos, WINDMILL_CROSS_COLOR, WINDMILL_CROSS_MATERIAL);
+		return new DhApiRenderableBox(minimumPos, maximumPos, bladeColor, bladeMaterial);
 	}
 
 	private static List<DhApiRenderableBox> rotateBoxesForAxis(List<DhApiRenderableBox> boxes, Direction.Axis rotationAxis,
@@ -424,7 +380,10 @@ public final class WindmillLODRenderManager {
 		var minimumPos = new DhApiVec3d(rotatedMinX, rotatedMinY, rotatedMinZ);
 		var maximumPos = new DhApiVec3d(rotatedMaxX, rotatedMaxY, rotatedMaxZ);
 
-		return new DhApiRenderableBox(minimumPos, maximumPos, WINDMILL_CROSS_COLOR, WINDMILL_CROSS_MATERIAL);
+		var color = box.color;
+		var material = EDhApiBlockMaterial.getFromIndex(box.material);
+
+		return new DhApiRenderableBox(minimumPos, maximumPos, color, material);
 	}
 
 	private static DhApiVec3d rotatePointForAxis(Direction.Axis rotationAxis, double x, double y, double z, double sin, double cos) {
@@ -488,8 +447,9 @@ public final class WindmillLODRenderManager {
 		if (cameraPosition != null) {
 			var originPosition = getRenderAnchorPositionForEntry(entry);
 			var distance = getDistanceToCamera(cameraPosition, originPosition);
+			var maximumRenderDistance = Mod.CONFIG.windmillMaximumRenderDistance;
 
-			if (distance > MAX_RENDER_DISTANCE) {
+			if (distance > maximumRenderDistance) {
 				return false;
 			}
 		}
