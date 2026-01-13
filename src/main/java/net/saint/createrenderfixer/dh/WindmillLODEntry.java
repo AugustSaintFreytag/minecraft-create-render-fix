@@ -9,6 +9,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtUtils;
 import net.minecraft.nbt.Tag;
+import net.saint.createrenderfixer.dh.WindmillLODGeometryUtil.BladeGeometry;
 
 public final class WindmillLODEntry {
 
@@ -49,6 +50,7 @@ public final class WindmillLODEntry {
 	public final float planeWidth;
 	public final float planeHeight;
 	public final float planeDepth;
+	public final BladeGeometry bladeGeometry;
 
 	public volatile float rotationSpeed;
 	public volatile float rotationAngle;
@@ -69,6 +71,7 @@ public final class WindmillLODEntry {
 		this.planeWidth = planeWidth;
 		this.planeHeight = planeHeight;
 		this.planeDepth = planeDepth;
+		this.bladeGeometry = WindmillLODGeometryUtil.makeBladeGeometry(planeWidth, planeHeight, planeDepth);
 		this.rotationSpeed = rotationSpeed;
 		this.rotationAngle = rotationAngle;
 		this.lastSynchronizationTick = lastSynchronizationTick;
@@ -222,8 +225,7 @@ public final class WindmillLODEntry {
 		return null;
 	}
 
-	private static float getFloatForKeysOrDefault(CompoundTag entryTag, float defaultValue, String primaryKey,
-			String... fallbackKeys) {
+	private static float getFloatForKeysOrDefault(CompoundTag entryTag, float defaultValue, String primaryKey, String... fallbackKeys) {
 		if (entryTag.contains(primaryKey, Tag.TAG_FLOAT)) {
 			return entryTag.getFloat(primaryKey);
 		}

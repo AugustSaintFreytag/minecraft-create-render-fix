@@ -73,9 +73,6 @@ public final class ContraptionBlockRegistry {
 		}
 	}
 
-	private record PlaneSize(float width, float height, float depth) {
-	}
-
 	private record WindmillRegistrationData(BlockPos controllerPosition, WindmillBearingBlockEntity windmillBearing,
 			Direction.Axis rotationAxis, Direction bearingDirection, AABB bounds) {
 	}
@@ -117,7 +114,8 @@ public final class ContraptionBlockRegistry {
 		var windmillData = resolveWindmillRegistrationData(entity, serverLevel);
 
 		if (windmillData != null) {
-			registerWindmillEntry(contraptionId, serverLevel, dimensionId, windmillData);
+			var planeSize = WindmillLODAnalysisUtil.getWindmillPlaneSize(contraption, windmillData.rotationAxis(), windmillData.bounds());
+			registerWindmillEntry(contraptionId, serverLevel, dimensionId, windmillData, planeSize);
 			removeStoredBlocksForWindmill(dimensionId, anchorPosition, windmillData.bounds());
 
 			return;
@@ -292,13 +290,12 @@ public final class ContraptionBlockRegistry {
 	// Utility
 
 	private static void registerWindmillEntry(UUID contraptionIdentifier, ServerLevel serverLevel, String dimensionIdentifier,
-			WindmillRegistrationData windmillData) {
-		if (WindmillLODManager.find(contraptionIdentifier) != null) {
-			Mod.LOGGER.info("Windmill contraption '{}' with registered LOD entry loading back in.", contraptionIdentifier);
-			return;
-		}
+			WindmillRegistrationData windmillData, WindmillLODAnalysisUtil.PlaneSize planeSize) {
+		var existingEntry = WindmillLODManager.find(contraptionIdentifier);
 
-		var planeSize = resolvePlaneSize(windmillData.bounds(), windmillData.rotationAxis());
+		if (existingEntry != null) {
+			Mod.LOGGER.info("Windmill contraption '{}' with registered LOD entry loading back in.", contraptionIdentifier);
+		}
 		var rotationSpeed = windmillData.windmillBearing().getAngularSpeed();
 		var rotationAngle = windmillData.windmillBearing().getInterpolatedAngle(1.0F);
 		var lastSynchronizationTick = serverLevel.getGameTime();
@@ -344,18 +341,6 @@ public final class ContraptionBlockRegistry {
 		notifyChunksDirty(removed.dimensionId, removed.chunks.keySet());
 
 		return windmillRemoved;
-	}
-
-	private static PlaneSize resolvePlaneSize(AABB bounds, Direction.Axis rotationAxis) {
-		var sizeX = (float) bounds.getXsize();
-		var sizeY = (float) bounds.getYsize();
-		var sizeZ = (float) bounds.getZsize();
-
-		return switch (rotationAxis) {
-		case X -> new PlaneSize(sizeZ, sizeY, sizeX);
-		case Y -> new PlaneSize(sizeX, sizeZ, sizeY);
-		case Z -> new PlaneSize(sizeX, sizeY, sizeZ);
-		};
 	}
 
 	private static void removeStoredBlocksForWindmill(String dimensionId, BlockPos anchorPosition, AABB bounds) {

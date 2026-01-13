@@ -5,6 +5,7 @@ import com.simibubi.create.content.contraptions.bearing.WindmillBearingBlockEnti
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.ChunkPos;
+import net.saint.createrenderfixer.Mod;
 import net.saint.createrenderfixer.mixin.create.MechanicalBearingBlockEntityAccessor;
 import net.saint.createrenderfixer.network.WindmillLODSyncUtil;
 
@@ -48,16 +49,42 @@ public final class WindmillLODServerTracker {
 
 	private static void updateEntryFromLevel(MinecraftServer server, ServerLevel level, WindmillLODEntry entry, long currentTick) {
 		var predictedAngle = getPredictedRotationAngleForEntry(entry, currentTick);
+		var windmillBearing = getWindmillBearingForEntry(level, entry);
+
+		if (removeEntryForWindmillIfNeeded(server, level, entry, windmillBearing)) {
+			return;
+		}
 
 		if (!isChunkLoadedForEntry(level, entry)) {
 			entry.isStale = true;
-			updateEntryForNonTickingChunk(server, level, entry, predictedAngle, currentTick);
+			updateEntryForNonTickingChunk(server, level, entry, windmillBearing, predictedAngle, currentTick);
 
 			return;
 		}
 
-		updateEntryForTickingChunk(server, level, entry, predictedAngle, currentTick);
+		updateEntryForTickingChunk(server, level, entry, windmillBearing, predictedAngle, currentTick);
 		entry.isStale = false;
+	}
+
+	private static boolean removeEntryForWindmillIfNeeded(MinecraftServer server, ServerLevel level, WindmillLODEntry entry,
+			WindmillBearingBlockEntity windmillBearing) {
+		if (!isChunkAvailableForEntry(level, entry)) {
+			return false;
+		}
+
+		if (windmillBearing == null) {
+			removeWindmillEntry(server, entry, "BEARING_ABSENT");
+
+			return true;
+		}
+
+		if (!isWindmillBearingAssembled(windmillBearing)) {
+			removeWindmillEntry(server, entry, "DISASSEMBLED");
+
+			return true;
+		}
+
+		return false;
 	}
 
 	// Debug
@@ -66,17 +93,15 @@ public final class WindmillLODServerTracker {
 		return forceSetLoadedWindmillRotationAnglesToZeroForLevel(level);
 	}
 
-	// Utility
+	// Access
 
-	private static void updateEntryForTickingChunk(MinecraftServer server, ServerLevel level, WindmillLODEntry entry, float predictedAngle,
-			long currentTick) {
-		var windmillBearing = getWindmillBearingForEntry(level, entry);
-
+	private static void updateEntryForTickingChunk(MinecraftServer server, ServerLevel level, WindmillLODEntry entry,
+			WindmillBearingBlockEntity windmillBearing, float predictedAngle, long currentTick) {
 		if (windmillBearing != null) {
 			applyPredictedRotationToBearing(windmillBearing, entry, predictedAngle, "TICKING_ENTRY");
 		}
 
-		var rotationSpeed = windmillBearing != null ? windmillBearing.getAngularSpeed() : 0.0F;
+		var rotationSpeed = getRotationSpeedForBearing(windmillBearing);
 
 		if (!shouldSynchronizeEntry(entry, rotationSpeed, predictedAngle)) {
 			return;
@@ -91,9 +116,7 @@ public final class WindmillLODServerTracker {
 	}
 
 	private static void updateEntryForNonTickingChunk(MinecraftServer server, ServerLevel level, WindmillLODEntry entry,
-			float predictedAngle, long currentTick) {
-		var windmillBearing = getWindmillBearingForEntry(level, entry);
-
+			WindmillBearingBlockEntity windmillBearing, float predictedAngle, long currentTick) {
 		if (windmillBearing != null) {
 			applyPredictedRotationToBearing(windmillBearing, entry, predictedAngle, "NON_TICKING_ENTRY");
 		}
@@ -110,6 +133,90 @@ public final class WindmillLODServerTracker {
 			Mod.LOGGER.info("Synchronized windmill LOD entry for contraption '{}' with predicted angle '{}' in non-ticking chunk.",
 					entry.contraptionId, predictedAngle);
 		}
+	}
+
+	private static void removeWindmillEntry(MinecraftServer server, WindmillLODEntry entry, String reason) {
+		if (server == null || entry == null) {
+			return;
+		}
+
+		var removed = WindmillLODManager.unregister(entry.contraptionId);
+
+		if (!removed) {
+			return;
+		}
+
+		WindmillLODSyncUtil.broadcastRemovalPacket(server, entry.contraptionId);
+
+		if (Mod.CONFIG.enableLogging) {
+			Mod.LOGGER.info("Removed stale windmill LOD entry for contraption '{}' due to '{}'.", entry.contraptionId, reason);
+		}
+	}
+
+	// Overrides
+
+	private static int forceSetLoadedWindmillRotationAnglesToZeroForLevel(ServerLevel level) {
+		if (level == null) {
+			return 0;
+		}
+
+		var dimensionId = level.dimension().location().toString();
+		var updatedCount = 0;
+		var currentTick = level.getGameTime();
+		var server = level.getServer();
+
+		for (var entry : WindmillLODManager.entries()) {
+			if (!dimensionId.equals(entry.dimensionId)) {
+				continue;
+			}
+
+			synchronizeEntry(server, entry, entry.rotationSpeed, 0.0F, currentTick);
+			updatedCount++;
+		}
+
+		return updatedCount;
+	}
+
+	// Synchronization
+
+	private static void synchronizeEntry(MinecraftServer server, WindmillLODEntry entry, float rotationSpeed, float rotationAngle,
+			long currentTick) {
+		entry.rotationSpeed = rotationSpeed;
+		entry.rotationAngle = rotationAngle;
+		entry.lastSynchronizationTick = currentTick;
+
+		WindmillLODSyncUtil.broadcastUpdatePacket(server, entry);
+	}
+
+	private static boolean shouldSynchronizeEntry(WindmillLODEntry entry, float rotationSpeed, float rotationAngle) {
+		var speedDelta = Math.abs(rotationSpeed - entry.rotationSpeed);
+		var angleDelta = getRotationDeltaForAngles(rotationAngle, entry.rotationAngle);
+
+		if (speedDelta < SPEED_SYNC_THRESHOLD && angleDelta < ROTATION_SYNC_THRESHOLD) {
+			return false;
+		}
+
+		return true;
+	}
+
+	// Utility (Rotation)
+
+	private static float getRotationSpeedForBearing(WindmillBearingBlockEntity windmillBearing) {
+		if (windmillBearing == null) {
+			return 0.0F;
+		}
+
+		return windmillBearing.getAngularSpeed();
+	}
+
+	private static boolean isWindmillBearingAssembled(WindmillBearingBlockEntity windmillBearing) {
+		if (!(windmillBearing instanceof MechanicalBearingBlockEntityAccessor accessor)) {
+			return true;
+		}
+
+		var movedContraption = accessor.getMovedContraption();
+
+		return movedContraption != null;
 	}
 
 	private static void applyPredictedRotationToBearing(WindmillBearingBlockEntity windmillBearing, WindmillLODEntry entry,
@@ -142,27 +249,7 @@ public final class WindmillLODServerTracker {
 		var tickDelta = currentTick - entry.lastSynchronizationTick;
 		var predictedAngle = entry.rotationAngle + entry.rotationSpeed * tickDelta;
 
-		return wrapDegrees(predictedAngle);
-	}
-
-	private static void synchronizeEntry(MinecraftServer server, WindmillLODEntry entry, float rotationSpeed, float rotationAngle,
-			long currentTick) {
-		entry.rotationSpeed = rotationSpeed;
-		entry.rotationAngle = rotationAngle;
-		entry.lastSynchronizationTick = currentTick;
-
-		WindmillLODSyncUtil.broadcastUpdatePacket(server, entry);
-	}
-
-	private static boolean shouldSynchronizeEntry(WindmillLODEntry entry, float rotationSpeed, float rotationAngle) {
-		var speedDelta = Math.abs(rotationSpeed - entry.rotationSpeed);
-		var angleDelta = getRotationDeltaForAngles(rotationAngle, entry.rotationAngle);
-
-		if (speedDelta < SPEED_SYNC_THRESHOLD && angleDelta < ROTATION_SYNC_THRESHOLD) {
-			return false;
-		}
-
-		return true;
+		return getWrappedDegrees(predictedAngle);
 	}
 
 	private static float getRotationDeltaForAngles(float previousAngle, float nextAngle) {
@@ -175,7 +262,7 @@ public final class WindmillLODServerTracker {
 		return delta;
 	}
 
-	private static float wrapDegrees(float angle) {
+	private static float getWrappedDegrees(float angle) {
 		var wrapped = angle % 360.0F;
 
 		if (wrapped < 0.0F) {
@@ -184,6 +271,8 @@ public final class WindmillLODServerTracker {
 
 		return wrapped;
 	}
+
+	// Utility (Load Checks)
 
 	private static boolean isChunkLoadedForEntry(ServerLevel level, WindmillLODEntry entry) {
 		if (level == null || entry == null) {
@@ -206,28 +295,6 @@ public final class WindmillLODServerTracker {
 		}
 
 		return true;
-	}
-
-	private static int forceSetLoadedWindmillRotationAnglesToZeroForLevel(ServerLevel level) {
-		if (level == null) {
-			return 0;
-		}
-
-		var dimensionId = level.dimension().location().toString();
-		var updatedCount = 0;
-		var currentTick = level.getGameTime();
-		var server = level.getServer();
-
-		for (var entry : WindmillLODManager.entries()) {
-			if (!dimensionId.equals(entry.dimensionId)) {
-				continue;
-			}
-
-			synchronizeEntry(server, entry, entry.rotationSpeed, 0.0F, currentTick);
-			updatedCount++;
-		}
-
-		return updatedCount;
 	}
 
 	private static WindmillBearingBlockEntity getWindmillBearingForEntry(ServerLevel level, WindmillLODEntry entry) {
