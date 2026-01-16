@@ -342,18 +342,8 @@ public final class WindmillLODServerTracker {
 	}
 
 	private static boolean isChunkAvailableForEntry(ServerLevel level, WindmillLODEntry entry) {
-		if (level == null || entry == null) {
-			return false;
-		}
-
 		var chunkPosition = getChunkPositionForEntryAnchor(entry);
-		var chunkSource = level.getChunkSource();
-
-		if (chunkSource == null) {
-			return false;
-		}
-
-		return chunkSource.hasChunk(chunkPosition.x, chunkPosition.z);
+		return level.shouldTickBlocksAt(chunkPosition.toLong());
 	}
 
 	private static ChunkPos getChunkPositionForEntryAnchor(WindmillLODEntry entry) {
