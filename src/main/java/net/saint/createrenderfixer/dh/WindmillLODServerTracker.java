@@ -300,23 +300,33 @@ public final class WindmillLODServerTracker {
 
 	// Utility (Load Checks)
 
-	private static boolean isChunkLoadedForEntry(ServerLevel level, WindmillLODEntry entry) {
-		if (level == null || entry == null) {
+	private static boolean isBearingNearAnyPlayer(ServerLevel level, WindmillBearingBlockEntity windmillBearing) {
+		if (windmillBearing == null) {
 			return false;
 		}
 
-		var chunkPosition = getChunkPositionForEntryAnchor(entry);
-		var chunkSource = level.getChunkSource();
+		var server = level.getServer();
+		var viewDistance = server.getPlayerList().getViewDistance();
+		var viewDistanceOffset = 4;
 
-		if (chunkSource == null) {
+		for (var player : level.players()) {
+			var windmillPosition = windmillBearing.getBlockPosition().getCenter();
+			var distance = Math.sqrt(player.distanceToSqr(windmillPosition));
+
+			if (distance <= (viewDistance + viewDistanceOffset) * 16) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	private static boolean isEntityInTickablePosition(ServerLevel level, WindmillLODEntry entry) {
+		if (level == null || entry == null || entry.anchorPosition == null) {
 			return false;
 		}
 
-		if (!chunkSource.hasChunk(chunkPosition.x, chunkPosition.z)) {
-			return false;
-		}
-
-		if (!level.isPositionEntityTicking(entry.anchorPosition)) {
+		if (!BlockTickingUtil.isPositionTicking(level, entry.anchorPosition)) {
 			return false;
 		}
 
@@ -324,7 +334,7 @@ public final class WindmillLODServerTracker {
 	}
 
 	private static WindmillBearingBlockEntity getWindmillBearingForEntry(ServerLevel level, WindmillLODEntry entry) {
-		if (level == null || entry == null) {
+		if (level == null || entry == null || entry.anchorPosition == null) {
 			return null;
 		}
 
