@@ -8,6 +8,7 @@ import net.minecraft.world.level.ChunkPos;
 import net.saint.createrenderfixer.Mod;
 import net.saint.createrenderfixer.mixin.create.MechanicalBearingBlockEntityAccessor;
 import net.saint.createrenderfixer.network.WindmillLODSyncUtil;
+import net.saint.createrenderfixer.utils.BlockTickingUtil;
 
 public final class WindmillLODServerTracker {
 
@@ -49,15 +50,12 @@ public final class WindmillLODServerTracker {
 			return;
 		}
 
-		if (!isChunkLoadedForEntry(level, entry)) {
-			entry.isStale = true;
-			updateEntryForNonTickingChunk(server, level, entry, windmillBearing, predictedAngle, currentTick);
-
+		if (!isEntityInTickablePosition(level, entry)) {
+			updateEntryForNonTicking(server, level, entry, windmillBearing, predictedAngle, currentTick);
 			return;
 		}
 
-		updateEntryForTickingChunk(server, level, entry, windmillBearing, predictedAngle, currentTick);
-		entry.isStale = false;
+		updateEntryForTicking(server, level, entry, windmillBearing, predictedAngle, currentTick);
 	}
 
 	private static boolean removeEntryForWindmillIfNeeded(MinecraftServer server, ServerLevel level, WindmillLODEntry entry,
@@ -68,13 +66,6 @@ public final class WindmillLODServerTracker {
 
 		if (windmillBearing == null) {
 			removeWindmillEntry(server, entry, "BEARING_ABSENT");
-
-			return true;
-		}
-
-		if (!isWindmillBearingAssembled(windmillBearing)) {
-			removeWindmillEntry(server, entry, "DISASSEMBLED");
-
 			return true;
 		}
 
@@ -89,31 +80,38 @@ public final class WindmillLODServerTracker {
 
 	// Access
 
-	private static void updateEntryForTickingChunk(MinecraftServer server, ServerLevel level, WindmillLODEntry entry,
+	private static void updateEntryForTicking(MinecraftServer server, ServerLevel level, WindmillLODEntry entry,
 			WindmillBearingBlockEntity windmillBearing, float predictedAngle, long currentTick) {
-		var currentSpeed = getRotationSpeedForBearing(windmillBearing);
-		var currentAngle = getRotationAngleForBearing(windmillBearing);
+		var assertedAngle = 0f;
 
-		if (shouldSynchronizeEntry(entry, currentSpeed, currentAngle)) {
-			synchronizeEntry(server, entry, currentSpeed, predictedAngle, currentTick, "TICKING_UPDATE");
+		if (shouldOverrideBearing(windmillBearing, entry, currentTick, entry.rotationSpeed, predictedAngle, true)) {
+			applyRotationToBearing(windmillBearing, entry, predictedAngle, "TICKING_UPDATE");
+			assertedAngle = predictedAngle;
 		}
 
-		if (shouldOverrideBearing(entry, currentTick, currentSpeed, currentAngle, entry.rotationSpeed, predictedAngle)) {
-			applyPredictedRotationToBearing(windmillBearing, entry, predictedAngle, "TICKING_UPDATE");
+		if (shouldUpdateEntry(windmillBearing, entry, currentTick, true)) {
+			var currentSpeed = getRotationSpeedForBearing(windmillBearing);
+			var currentAngle = getRotationAngleForBearing(windmillBearing);
+
+			if (assertedAngle != 0f && assertedAngle != currentAngle) {
+				// If this ever logs, the bearing does not return a value it was just set to.
+				Mod.LOGGER.error("Asserted angle mismatch!");
+			}
+
+			entry.isStale = false;
+			synchronizeEntry(server, entry, currentSpeed, currentAngle, currentTick, "TICKING_UPDATE");
 		}
 	}
 
-	private static void updateEntryForNonTickingChunk(MinecraftServer server, ServerLevel level, WindmillLODEntry entry,
+	private static void updateEntryForNonTicking(MinecraftServer server, ServerLevel level, WindmillLODEntry entry,
 			WindmillBearingBlockEntity windmillBearing, float predictedAngle, long currentTick) {
-		var currentSpeed = getRotationSpeedForBearing(windmillBearing);
-		var currentAngle = getRotationAngleForBearing(windmillBearing);
-
-		if (shouldSynchronizeEntry(entry, currentSpeed, predictedAngle)) {
-			synchronizeEntry(server, entry, currentSpeed, predictedAngle, currentTick, "NON_TICKING_UPDATE");
+		if (shouldUpdateEntry(windmillBearing, entry, currentTick, false)) {
+			entry.isStale = true;
+			synchronizeEntry(server, entry, entry.rotationSpeed, predictedAngle, currentTick, "NON_TICKING_UPDATE");
 		}
 
-		if (shouldOverrideBearing(entry, currentTick, currentSpeed, currentAngle, entry.rotationSpeed, predictedAngle)) {
-			applyPredictedRotationToBearing(windmillBearing, entry, predictedAngle, "NON_TICKING_UPDATE");
+		if (shouldOverrideBearing(windmillBearing, entry, currentTick, entry.rotationSpeed, predictedAngle, false)) {
+			applyRotationToBearing(windmillBearing, entry, predictedAngle, "NON_TICKING_UPDATE");
 		}
 	}
 
@@ -129,7 +127,89 @@ public final class WindmillLODServerTracker {
 		}
 
 		WindmillLODSyncUtil.broadcastRemovalPacket(server, entry.contraptionId);
+		Mod.LOGGER.info("Removed stale windmill LOD entry for contraption '{}' due to '{}'.", entry.contraptionId, reason);
+	}
 
+	// Synchronization
+
+	private static void synchronizeEntry(MinecraftServer server, WindmillLODEntry entry, float rotationSpeed, float rotationAngle,
+			long currentTick, String reason) {
+		entry.rotationSpeed = rotationSpeed;
+		entry.rotationAngle = rotationAngle;
+		entry.lastSynchronizationTick = currentTick;
+
+		Mod.LOGGER.info("Updating entry for contraption '{}' due to '{}' and broadcasting to all clients.", entry.contraptionId, reason);
+		WindmillLODSyncUtil.broadcastUpdatePacket(server, entry);
+	}
+
+	/**
+	 * Determines if the active windmill bearing should be overridden with given values.
+	 * 
+	 * Checks if windmill bearing angle and speed have shifted far enough from given values.
+	 */
+	private static boolean shouldOverrideBearing(WindmillBearingBlockEntity windmillBearing, WindmillLODEntry entry, long currentTick,
+			float predictedSpeed, float predictedAngle, boolean isTicking) {
+		if (windmillBearing == null || entry == null || !entry.isStale) {
+			return false;
+		}
+
+		var level = (ServerLevel) windmillBearing.getLevel();
+
+		if (!isBearingNearAnyPlayer(level, windmillBearing)) {
+			return false;
+		}
+
+		var currentSpeed = getRotationSpeedForBearing(windmillBearing);
+		var currentAngle = getRotationAngleForBearing(windmillBearing);
+
+		var angleDelta = getRotationDeltaForAngles(currentAngle, predictedAngle);
+		var speedDelta = Math.abs(currentSpeed - predictedSpeed);
+
+		if (speedDelta < Mod.CONFIG.windmillRotationSpeedSyncThreshold && angleDelta < Mod.CONFIG.windmillRotationAngleSyncThreshold) {
+			return false;
+		}
+
+		return true;
+	}
+
+	/**
+	 * Determines if the entry should be updated and synchronized with changed values.
+	 * 
+	 * Checks if current angle and speed have shifted far enough from last stored values.
+	 */
+	private static boolean shouldUpdateEntry(WindmillBearingBlockEntity windmillBearing, WindmillLODEntry entry, long currentTick,
+			boolean isTicking) {
+		if (isTicking && entry.isStale || !isTicking && !entry.isStale) {
+			return true;
+		}
+
+		// Can be optimized to be split into "everything as predicted" and "things have changed".
+		// Can split into `shouldUpdateEntry` and `shouldBroadcastEntry` where broadcasting is
+		// unnecessary if only rotation has changed.
+
+		var hasEntityLODDrift = false;
+
+		if (windmillBearing != null) {
+			var currentSpeed = getRotationSpeedForBearing(windmillBearing);
+			var currentAngle = getRotationAngleForBearing(windmillBearing);
+
+			var speedDelta = Math.abs(currentSpeed - entry.rotationSpeed);
+			var angleDelta = getRotationDeltaForAngles(currentAngle, entry.rotationAngle);
+
+			if (speedDelta > Mod.CONFIG.windmillRotationSpeedSyncThreshold || angleDelta > Mod.CONFIG.windmillRotationAngleSyncThreshold) {
+				hasEntityLODDrift = true;
+			}
+		}
+
+		if (currentTick - entry.lastSynchronizationTick > Mod.CONFIG.windmillSyncTickInterval * 8) {
+			return true;
+		}
+
+		if (hasEntityLODDrift) {
+			return true;
+		}
+
+		return false;
 	}
 
 	// Overrides
@@ -154,75 +234,6 @@ public final class WindmillLODServerTracker {
 		}
 
 		return updatedCount;
-		Mod.LOGGER.info("Removed stale windmill LOD entry for contraption '{}' due to '{}'.", entry.contraptionId, reason);
-	}
-
-	// Synchronization
-
-	private static void synchronizeEntry(MinecraftServer server, WindmillLODEntry entry, float rotationSpeed, float rotationAngle,
-			long currentTick, String reason) {
-		entry.rotationSpeed = rotationSpeed;
-		entry.rotationAngle = rotationAngle;
-		entry.lastSynchronizationTick = currentTick;
-
-		Mod.LOGGER.info("Updating entry for contraption '{}' due to '{}' and broadcasting to all clients.", entry.contraptionId, reason);
-		WindmillLODSyncUtil.broadcastUpdatePacket(server, entry);
-	}
-
-	/**
-	 * Determines if the entry should be updated and synchronized with changed values.
-	 * 
-	 * Checks if current angle and speed have shifted far enough from last stored values.
-	 */
-	private static boolean shouldSynchronizeEntry(WindmillLODEntry entry, float currentSpeed, float currentAngle) {
-		var speedDelta = Math.abs(currentSpeed - entry.rotationSpeed);
-		var angleDelta = getRotationDeltaForAngles(currentAngle, entry.rotationAngle);
-
-		if (speedDelta < Mod.CONFIG.windmillRotationSpeedSyncThreshold && angleDelta < Mod.CONFIG.windmillRotationAngleSyncThreshold) {
-			return false;
-		}
-
-		return true;
-	}
-
-	/**
-	 * Determines if the active windmill bearing should be overridden with given values.
-	 * 
-	 * Checks if windmill bearing angle and speed have shifted far enough from given values.
-	 */
-	private static boolean shouldOverrideBearing(WindmillLODEntry entry, long currentTick, float currentSpeed, float currentAngle,
-			float predictedSpeed, float predictedAngle) {
-		if (entry == null) {
-			return false;
-		}
-
-		if (!shouldAllowOverrideForEntryAge(entry, currentTick)) {
-			return false;
-		}
-
-		var angleDelta = getRotationDeltaForAngles(currentAngle, predictedAngle);
-		var speedDelta = Math.abs(currentSpeed - predictedSpeed);
-
-		if (speedDelta < Mod.CONFIG.windmillRotationSpeedSyncThreshold && angleDelta < Mod.CONFIG.windmillRotationAngleSyncThreshold) {
-			return false;
-		}
-
-		return true;
-	}
-
-	private static boolean shouldAllowOverrideForEntryAge(WindmillLODEntry entry, long currentTick) {
-		var minimumAgeTicks = getMinimumOverrideAgeTicks();
-		var entryAgeTicks = Math.max(0, currentTick - entry.tickRegistered);
-
-		if (entryAgeTicks < minimumAgeTicks) {
-			return false;
-		}
-
-		return true;
-	}
-
-	private static long getMinimumOverrideAgeTicks() {
-		return (long) Mod.CONFIG.windmillSyncTickInterval * 4L;
 	}
 
 	// Utility (Rotation)
@@ -244,6 +255,8 @@ public final class WindmillLODServerTracker {
 	}
 
 	private static boolean isWindmillBearingAssembled(WindmillBearingBlockEntity windmillBearing) {
+		// TODO: Can re-introduce an "is disassembled" task if possible.
+
 		if (!(windmillBearing instanceof MechanicalBearingBlockEntityAccessor accessor)) {
 			return true;
 		}
@@ -252,8 +265,8 @@ public final class WindmillLODServerTracker {
 		return movedContraption != null;
 	}
 
-	private static void applyPredictedRotationToBearing(WindmillBearingBlockEntity windmillBearing, WindmillLODEntry entry,
-			float rotationAngle, String reason) {
+	private static void applyRotationToBearing(WindmillBearingBlockEntity windmillBearing, WindmillLODEntry entry, float rotationAngle,
+			String reason) {
 		if (windmillBearing == null) {
 			return;
 		}
