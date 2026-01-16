@@ -8,20 +8,25 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import com.simibubi.create.content.contraptions.AbstractContraptionEntity;
 
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.nbt.CompoundTag;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.saint.createrenderfixer.dh.ContraptionBlockRegistry;
 
 @Mixin(AbstractContraptionEntity.class)
 public abstract class AbstractContraptionEntityMixin {
 
-	@Inject(method = "readAdditionalSaveData", at = @At("TAIL"))
-	private void crf$onReadAdditionalSaveData(CompoundTag compoundTag, CallbackInfo callbackInfo) {
+	@Inject(method = "contraptionInitialize", at = @At("TAIL"))
+	private void crf$contraptionInitialize(CallbackInfo callbackInfo) {
 		if (!FabricLoader.getInstance().isModLoaded("distanthorizons")) {
 			return;
 		}
 
 		var contraption = (AbstractContraptionEntity) (Object) this;
+
+		if (!isServerSideEntity(contraption)) {
+			return;
+		}
+
 		ContraptionBlockRegistry.register(contraption);
 	}
 
@@ -36,6 +41,11 @@ public abstract class AbstractContraptionEntityMixin {
 		}
 
 		var contraption = (AbstractContraptionEntity) (Object) this;
+
+		if (!isServerSideEntity(contraption)) {
+			return;
+		}
+
 		ContraptionBlockRegistry.unregister(contraption);
 	}
 
@@ -46,6 +56,19 @@ public abstract class AbstractContraptionEntityMixin {
 		}
 
 		var contraption = (AbstractContraptionEntity) (Object) this;
+
+		if (!isServerSideEntity(contraption)) {
+			return;
+		}
+
 		ContraptionBlockRegistry.unregister(contraption);
+	}
+
+	private static boolean isServerSideEntity(Entity entity) {
+		if (entity.level() instanceof ServerLevel) {
+			return true;
+		}
+
+		return false;
 	}
 }
