@@ -9,6 +9,8 @@ import com.simibubi.create.content.contraptions.bearing.BearingContraption;
 import com.simibubi.create.content.contraptions.bearing.WindmillBearingBlockEntity;
 import com.simibubi.create.infrastructure.config.AllConfigs;
 
+import net.saint.createrenderfixer.utils.MathUtil;
+
 @Mixin(WindmillBearingBlockEntity.class)
 public abstract class WindmillBearingBlockEntityMixin {
 
@@ -41,8 +43,14 @@ public abstract class WindmillBearingBlockEntityMixin {
 	}
 
 	private float getDiminishingReturnFactor(int numberOfSailBlocks) {
-		var numberOfSailGroups = (float) numberOfSailBlocks / (float) AllConfigs.server().kinetics.windmillSailsPerRPM.get();
-		var factor = (float) (1f - ((Math.pow((numberOfSailGroups + 1f), -0.5f) - 1f) / -2f));
+		var numberOfSailBlocksPerGroup = AllConfigs.server().kinetics.windmillSailsPerRPM.get();
+		var numberOfSailGroups = (float) MathUtil.clamp(numberOfSailBlocks / numberOfSailBlocksPerGroup, 1, 16);
+
+		var minFactor = 0.0f;
+		var maxFactor = 2.0f;
+
+		var rawFactor = minFactor + (maxFactor - minFactor) / (1.0f + 0.65f * (numberOfSailGroups - 2.5f));
+		var factor = MathUtil.clamp(rawFactor, 0.25f, 1.0f);
 
 		return factor;
 	}
