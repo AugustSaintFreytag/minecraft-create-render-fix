@@ -11,7 +11,7 @@ import net.minecraft.world.level.Level;
  */
 public final class ContraptionRegistrationUtil {
 
-	public static void scanWorld(ServerLevel level) {
+	public static void registerAllWorldEntities(ServerLevel level) {
 		for (var entity : level.getAllEntities()) {
 			tryRegister(level, entity);
 		}

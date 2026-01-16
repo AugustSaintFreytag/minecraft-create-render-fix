@@ -16,11 +16,11 @@ import net.saint.createrenderfixer.dh.ContraptionPersistencyUtil;
 import net.saint.createrenderfixer.dh.ContraptionRegistrationUtil;
 import net.saint.createrenderfixer.dh.DhBridge;
 import net.saint.createrenderfixer.dh.DhChunkProcessingHandler;
+import net.saint.createrenderfixer.dh.WindmillLODMaterialManager;
 import net.saint.createrenderfixer.dh.WindmillLODServerTracker;
 import net.saint.createrenderfixer.network.WindmillLODSyncUtil;
 import net.saint.createrenderfixer.utils.EntityBlacklistManager;
 import net.saint.createrenderfixer.utils.Logger;
-import net.saint.createrenderfixer.utils.WindmillLODMaterialManager;
 
 public class Mod implements ModInitializer {
 
@@ -81,7 +81,7 @@ public class Mod implements ModInitializer {
 			WindmillLODSyncUtil.broadcastLoadAllPacket(server);
 		});
 
-		ServerWorldEvents.LOAD.register((server, world) -> ContraptionRegistrationUtil.scanWorld(world));
+		ServerWorldEvents.LOAD.register((server, world) -> ContraptionRegistrationUtil.registerAllWorldEntities(world));
 
 		ServerEntityEvents.ENTITY_LOAD.register((entity, world) -> ContraptionRegistrationUtil.tryRegister(world, entity));
 	}
