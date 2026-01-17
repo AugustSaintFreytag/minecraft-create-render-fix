@@ -74,7 +74,7 @@ public final class WindmillLODRenderManager {
 				continue;
 			}
 
-			var renderAngle = getRenderAngleForEntry(level, entry, partialTicks);
+			var renderAngle = updateRenderAngleForEntry(level, entry, partialTicks);
 			activeIdentifiers.add(entry.contraptionId);
 			var renderGroup = getOrCreateRenderGroup(renderFactory, renderRegister, entry);
 
@@ -327,6 +327,7 @@ public final class WindmillLODRenderManager {
 		var originX = originPosition.getX() + 0.5;
 		var originY = originPosition.getY() + 0.5;
 		var originZ = originPosition.getZ() + 0.5;
+
 		var deltaX = originX - cameraPosition.x;
 		var deltaY = originY - cameraPosition.y;
 		var deltaZ = originZ - cameraPosition.z;
@@ -334,7 +335,7 @@ public final class WindmillLODRenderManager {
 		return Math.sqrt(deltaX * deltaX + deltaY * deltaY + deltaZ * deltaZ);
 	}
 
-	private static float getRenderAngleForEntry(ClientLevel level, WindmillLODEntry entry, float partialTicks) {
+	private static float updateRenderAngleForEntry(ClientLevel level, WindmillLODEntry entry, float partialTicks) {
 		var currentTick = level.getGameTime();
 		var lastSynchronizationTick = entry.lastSynchronizationTick;
 		var tickDelta = currentTick - lastSynchronizationTick;
