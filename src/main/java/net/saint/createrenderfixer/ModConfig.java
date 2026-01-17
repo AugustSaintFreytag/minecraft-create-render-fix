@@ -95,8 +95,8 @@ public class ModConfig implements ConfigData {
 	public String windmillBladeMaterial = "WOOD";
 
 	@ConfigEntry.Category("lods-windmill")
-	@Comment("Fixed offset added to windmill blade LOD rotation angle to accommodate for visual difference in representation. (Default: 0.0)")
-	public float windmillBladeRotationAngleOffset = 0.0f;
+	@Comment("Fixed offset added to windmill blade LOD rotation angle to accommodate for visual difference in representation. (Default: -3.0)")
+	public float windmillBladeRotationAngleOffset = -3.0f;
 
 	@ConfigEntry.Category("lods-windmill")
 	@Comment("Server-side tick interval to manage active windmill LODs entries, process updates, and broadcast entries to players in range. (Default: 20)")
@@ -107,8 +107,8 @@ public class ModConfig implements ConfigData {
 	public int windmillSyncBaseTickInterval = 20;
 
 	@ConfigEntry.Category("lods-windmill")
-	@Comment("Throttles player sync updates by distance (in chunks). The time between syncs in multiplied by distance in chunks divided by stride. Lower means more aggressive throttling. (Default: 16)")
-	public int windmillSyncDistanceStride = 16;
+	@Comment("Throttles player sync updates by distance (in chunks). The time between syncs in multiplied by distance in chunks divided by stride. Lower means more aggressive throttling. (Default: 4)")
+	public int windmillSyncDistanceStride = 4;
 
 	@ConfigEntry.Category("lods-windmill")
 	@Comment("Maximum rotation angle delta between server expectation and client actual to cause override. (Default: 1.0)")
