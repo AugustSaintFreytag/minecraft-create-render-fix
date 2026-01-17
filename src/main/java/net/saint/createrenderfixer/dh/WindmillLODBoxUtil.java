@@ -35,7 +35,7 @@ public final class WindmillLODBoxUtil {
 			return List.of();
 		}
 
-		var volumeScale = getVolumeScaleForRotationAngle(rotationAngle);
+		var volumeScale = getVolumeScaleForRotationAngle(bladeSize.length(), rotationAngle);
 		var baseBoxes = getCrossBoxesForAxis(rotationAxis, bladeSize, numberOfSegments, volumeScale, bladeColor, bladeMaterial);
 
 		return rotateBoxesForAxis(baseBoxes, rotationAxis, rotationAngle);
@@ -171,10 +171,12 @@ public final class WindmillLODBoxUtil {
 
 	// Scaling Utility
 
-	private static float getVolumeScaleForRotationAngle(float rotationAngle) {
+	private static float getVolumeScaleForRotationAngle(float bladeLength, float rotationAngle) {
 		var radians = Math.toRadians(rotationAngle);
 		var weight = (Math.cos(radians * 4.0) + 1.0) / 2.0;
-		var maxScale = Mod.CONFIG.windmillBladeRotationVolumeScale;
+
+		var sizeScale = 1.0f + Mod.CONFIG.windmillBladeRotationVolumeScaleSizeFactor * (bladeLength / 9.0f);
+		var maxScale = Mod.CONFIG.windmillBladeRotationVolumeScale * sizeScale;
 		var currentScale = 1.0 + (maxScale - 1.0) * weight;
 
 		return (float) currentScale;

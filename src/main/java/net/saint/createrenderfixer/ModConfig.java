@@ -51,6 +51,14 @@ public class ModConfig implements ConfigData {
 	public float windmillBladeWidthFactor = 1.0f;
 
 	@ConfigEntry.Category("lods-windmill")
+	@Comment("Scale factor used to calculate blade width compensation depending on windmill size. (Default: 0.01)")
+	public float windmillBladeSizeWidthFactor = 0.01f;
+
+	@ConfigEntry.Category("lods-windmill")
+	@Comment("Base scale factor trim used to calculate blade width compensation depending on windmill size. (Default: 0.65)")
+	public float windmillBladeSizeWidthTrim = 0.65f;
+
+	@ConfigEntry.Category("lods-windmill")
 	@Comment("Scale factor applied to estimated depth constructing windmill blade LOD boxes. (Default: 0.5)")
 	public float windmillBladeDepthFactor = 0.5f;
 
@@ -71,8 +79,12 @@ public class ModConfig implements ConfigData {
 	public int windmillBladeSegmentCountMaximum = 24;
 
 	@ConfigEntry.Category("lods-windmill")
-	@Comment("Maximum volume scale factor used during blade rotation to compensate for perceived volume loss. (Default: 1.375)")
+	@Comment("Factor applied to blade volume to compensate for perceived volume loss during rotation.")
 	public float windmillBladeRotationVolumeScale = 1.375f;
+
+	@ConfigEntry.Category("lods-windmill")
+	@Comment("Factor applied to blade volume based on blade size to compensate for perceived volume loss during rotation.")
+	public float windmillBladeRotationVolumeScaleSizeFactor = 0.1f;
 
 	@ConfigEntry.Category("lods-windmill")
 	@Comment("Blade color as comma-separated red, green, and blue values. (Default: 250, 250, 250)")
