@@ -44,12 +44,6 @@ public class Mod implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
-		// Logger
-
-		ServerLifecycleEvents.SERVER_STARTING.register(server -> {
-			LOGGER.setAsServer();
-		});
-
 		// Config
 
 		AutoConfig.register(ModConfig.class, JanksonConfigSerializer::new);

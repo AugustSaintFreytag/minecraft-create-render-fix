@@ -1,5 +1,8 @@
 package net.saint.createrenderfixer.utils;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.apache.logging.log4j.LogManager;
 
 import net.saint.createrenderfixer.Mod;
@@ -9,15 +12,11 @@ public final class Logger {
 	// Properties
 
 	private final org.apache.logging.log4j.Logger delegate;
-	private final String prefix;
-
-	private String environment;
 
 	// Init
 
 	private Logger(String name) {
 		this.delegate = LogManager.getLogger(name);
-		this.prefix = "[" + Mod.MOD_NAME + "] ";
 	}
 
 	public static Logger create(String name) {
@@ -26,16 +25,6 @@ public final class Logger {
 
 	public static Logger create(Class<?> type) {
 		return new Logger(type.getSimpleName());
-	}
-
-	// Mutation
-
-	public void setAsClient() {
-		this.environment = "[Client]";
-	}
-
-	public void setAsServer() {
-		this.environment = "[Server]";
 	}
 
 	// Logging
@@ -67,11 +56,31 @@ public final class Logger {
 	// Content
 
 	private String getPrefix() {
-		if (this.environment == null) {
-			return this.prefix;
-		}
+		return getModPrefix() + " " + getEnvironmentPrefix() + " ";
+	}
 
-		return this.prefix + " " + this.environment;
+	private String getEnvironmentPrefix() {
+		return "[" + getCurrentEnvironmentLabel() + "]";
+	}
+
+	private String getModPrefix() {
+		return "[" + Mod.MOD_NAME + "]";
+	}
+
+	private static final Map<String, String> THREAD_NAME_MAP = new HashMap<>() {
+		{
+			this.put("Render thread", "Client");
+			this.put("Netty Local Client IO", "Client/Network");
+			this.put("Server thread", "Server");
+			this.put("Netty Server IO", "Server (Network)");
+		}
+	};
+
+	private static String getCurrentEnvironmentLabel() {
+		var threadName = Thread.currentThread().getName();
+		var remappedName = THREAD_NAME_MAP.computeIfAbsent(threadName, (key) -> ellipsizedLabel(key));
+
+		return remappedName;
 	}
 
 	// Check
@@ -86,6 +95,23 @@ public final class Logger {
 		}
 
 		action.run();
+	}
+
+	// Utility
+
+	private static String ellipsizedLabel(String label) {
+		return ellipsizedLabel(label, 20);
+	}
+
+	private static String ellipsizedLabel(String label, int maxLength) {
+		if (label.length() <= maxLength) {
+			return label;
+		}
+
+		int leftLength = maxLength / 2 - 1;
+		int rightLength = maxLength - leftLength - 1;
+
+		return label.substring(0, leftLength) + "…" + label.substring(label.length() - rightLength);
 	}
 
 }

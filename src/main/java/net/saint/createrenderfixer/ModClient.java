@@ -21,10 +21,6 @@ public final class ModClient implements ClientModInitializer {
 
 	@Override
 	public void onInitializeClient() {
-		// Logger
-
-		Mod.LOGGER.setAsClient();
-
 		// Distant Horizons
 
 		if (FabricLoader.getInstance().isModLoaded("distanthorizons")) {
