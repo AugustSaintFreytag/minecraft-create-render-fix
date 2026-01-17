@@ -22,7 +22,7 @@ public final class WindmillLODAnalysisUtil {
 
 	public static WindmillBladeSize getWindmillBladeSize(Contraption contraption, Direction.Axis rotationAxis, AABB bounds) {
 		var planeSize = getPlaneSizeForContraptionBounds(rotationAxis, bounds);
-		var estimatedPlaneLength = getBladeLenghtForContraption(planeSize);
+		var estimatedPlaneLength = getBladeLengthForContraption(planeSize);
 		var estimatedBladeWidth = getBladeWidthForContraption(contraption, planeSize);
 		var estimatedBladeDepth = getBladeDepthForWidth(estimatedBladeWidth);
 
@@ -58,16 +58,27 @@ public final class WindmillLODAnalysisUtil {
 			return 0.0F;
 		}
 
-		var totalSpan = planeSize.width() + planeSize.width();
+		var totalSpan = planeSize.width();
 
 		if (totalSpan <= 0.0F) {
 			return 0.0F;
 		}
 
-		return ((float) sailCount * Mod.CONFIG.windmillBladeWidthFactor) / totalSpan;
+		// Short: l:9.35, w:0.61, d:0.55
+		// Long: l:39.95, w:1.33, d:0.91
+
+		var baseWidthFactor = Mod.CONFIG.windmillBladeWidthFactor;
+		var compensatoryWidthFactor = getBladeWidthScalingFactor(planeSize.width());
+		var bladeWidth = ((float) sailCount * baseWidthFactor * compensatoryWidthFactor) / totalSpan;
+
+		return bladeWidth;
 	}
 
-	private static float getBladeLenghtForContraption(Size2D planeSize) {
+	private static float getBladeWidthScalingFactor(float bladeLength) {
+		return Mod.CONFIG.windmillBladeSizeWidthFactor * bladeLength + Mod.CONFIG.windmillBladeSizeWidthTrim;
+	}
+
+	private static float getBladeLengthForContraption(Size2D planeSize) {
 		return planeSize.width() * Mod.CONFIG.windmillBladeLengthFactor;
 	}
 
