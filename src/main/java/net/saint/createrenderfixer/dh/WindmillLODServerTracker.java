@@ -126,7 +126,7 @@ public final class WindmillLODServerTracker {
 			return;
 		}
 
-		WindmillLODSyncUtil.broadcastRemovalPacket(server, entry.contraptionId);
+		WindmillLODSyncUtil.sendRemovalPacketToAllPlayers(server, entry.contraptionId);
 		Mod.LOGGER.info("Removed stale windmill LOD entry for contraption '{}' due to '{}'.", entry.contraptionId, reason);
 	}
 

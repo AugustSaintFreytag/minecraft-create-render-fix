@@ -1,7 +1,10 @@
 package net.saint.createrenderfixer.network;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -25,10 +28,14 @@ public final class WindmillLODSyncUtil {
 	private static final ResourceLocation UPDATE_PACKET = new ResourceLocation(Mod.MOD_ID, "windmill_lod_update");
 	private static final ResourceLocation REMOVE_PACKET = new ResourceLocation(Mod.MOD_ID, "windmill_lod_remove");
 
+	// State
+
+	private static Map<UUID, Long> lastBroadcastTickByPlayer = new HashMap<>();
+
 	// Init
 
 	public static void initServer() {
-		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> sendLoadAllPacketToPlayer(handler.player));
+		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> sendLoadPacketToPlayer(handler.player));
 	}
 
 	public static void initClient() {
@@ -67,8 +74,18 @@ public final class WindmillLODSyncUtil {
 
 	// Broadcast
 
-	public static void sendLoadAllPacketToPlayer(ServerPlayer player) {
-		var entries = collectEntries();
+	public static void sendLoadPacketToAllPlayers(MinecraftServer server) {
+		if (server == null) {
+			return;
+		}
+
+		for (var player : server.getPlayerList().getPlayers()) {
+			sendLoadPacketToPlayer(player);
+		}
+	}
+
+	public static void sendLoadPacketToPlayer(ServerPlayer player) {
+		var entries = collectServerEntries();
 		var buffer = PacketByteBufs.create();
 		buffer.writeVarInt(entries.size());
 
@@ -80,29 +97,35 @@ public final class WindmillLODSyncUtil {
 		Mod.LOGGER.info("Sent {} windmill LOD entries data to player '{}'.", entries.size(), player.getGameProfile().getName());
 	}
 
-	public static void broadcastLoadAllPacket(MinecraftServer server) {
-		if (server == null) {
-			return;
-		}
-
-		for (var player : server.getPlayerList().getPlayers()) {
-			sendLoadAllPacketToPlayer(player);
-		}
-	}
-
-	public static void broadcastUpdatePacket(MinecraftServer server, WindmillLODEntry entry) {
+	public static void sendUpdatePacketToAllPlayers(MinecraftServer server, WindmillLODEntry entry) {
 		if (server == null || entry == null) {
 			return;
 		}
 
+		var numberOfPacketsSent = new AtomicInteger();
+
 		for (var player : server.getPlayerList().getPlayers()) {
+			var playerDistance = getDistanceForPlayerToEntry(player, entry);
+			var minTicksElapsed = getTickPacingForPlayerDistance(playerDistance);
+
+			if (!shouldSendPacedUpdateToPlayer(player, minTicksElapsed)) {
+				continue;
+			}
+
 			var buffer = PacketByteBufs.create();
 			writeEntry(buffer, entry);
 			ServerPlayNetworking.send(player, UPDATE_PACKET, buffer);
+
+			numberOfPacketsSent.getAndIncrement();
+			touchBroadcastForPlayer(player);
+		}
+
+		if (numberOfPacketsSent.get() > 0) {
+			Mod.LOGGER.info("Sent paced windmill LOD entry to {} player(s).", numberOfPacketsSent.get());
 		}
 	}
 
-	public static void broadcastRemovalPacket(MinecraftServer server, UUID contraptionId) {
+	public static void sendRemovalPacketToAllPlayers(MinecraftServer server, UUID contraptionId) {
 		if (server == null || contraptionId == null) {
 			return;
 		}
@@ -112,6 +135,65 @@ public final class WindmillLODSyncUtil {
 			buffer.writeUUID(contraptionId);
 			ServerPlayNetworking.send(player, REMOVE_PACKET, buffer);
 		}
+	}
+
+	// Pacing (Time)
+
+	private static boolean shouldSendPacedUpdateToPlayer(ServerPlayer player, long minTicksElapsed) {
+		var lastBroadcastTick = lastBroadcastTickByPlayer.get(player.getUUID());
+
+		if (lastBroadcastTick == null) {
+			return true;
+		}
+
+		var currentTick = player.level().getGameTime();
+
+		return currentTick > lastBroadcastTick + minTicksElapsed;
+	}
+
+	private static void touchBroadcastForPlayer(ServerPlayer player) {
+		var currentTick = player.level().getGameTime();
+		lastBroadcastTickByPlayer.put(player.getUUID(), currentTick);
+	}
+
+	// Pacing (Distance)
+
+	private static double getDistanceForPlayerToEntry(ServerPlayer player, WindmillLODEntry entry) {
+		if (player == null || entry == null || entry.anchorPosition == null) {
+			return 0.0;
+		}
+
+		var playerDimensionId = player.level().dimension().location().toString();
+		var entryDimensionId = entry.dimensionId;
+
+		if (!playerDimensionId.equals(entryDimensionId)) {
+			return Math.max(0.0, Mod.CONFIG.windmillMaximumRenderDistance);
+		}
+
+		var windmillPosition = entry.anchorPosition.getCenter();
+		var distance = Math.sqrt(player.distanceToSqr(windmillPosition));
+
+		return distance;
+	}
+
+	private static int getTickPacingForPlayerDistance(double distanceBlocks) {
+		var baselineTickInterval = Math.max(1, Mod.CONFIG.windmillTickInterval);
+		var baselineChunkDistanceMaximum = 28.0;
+		var chunkDistanceStep = 16.0;
+		var distanceChunks = Math.max(0.0, distanceBlocks / chunkDistanceStep);
+		var maximumRenderDistanceBlocks = Math.max(0.0, Mod.CONFIG.windmillMaximumRenderDistance);
+		var maximumRenderDistanceChunks = maximumRenderDistanceBlocks / chunkDistanceStep;
+
+		if (distanceChunks <= baselineChunkDistanceMaximum || maximumRenderDistanceChunks <= baselineChunkDistanceMaximum) {
+			return baselineTickInterval;
+		}
+
+		var cappedDistanceChunks = Math.min(distanceChunks, maximumRenderDistanceChunks);
+		var extraChunkDistance = cappedDistanceChunks - baselineChunkDistanceMaximum;
+		var numberOfExtraSteps = (int) Math.ceil(extraChunkDistance / chunkDistanceStep);
+		var pacingMultiplier = numberOfExtraSteps + 1;
+
+		return baselineTickInterval * pacingMultiplier;
 	}
 
 	// Read
@@ -147,7 +229,7 @@ public final class WindmillLODSyncUtil {
 		buffer.writeNbt(entry.toNbt());
 	}
 
-	private static ArrayList<WindmillLODEntry> collectEntries() {
+	private static ArrayList<WindmillLODEntry> collectServerEntries() {
 		var entries = new ArrayList<WindmillLODEntry>();
 
 		for (var entry : WindmillLODManager.entries()) {
