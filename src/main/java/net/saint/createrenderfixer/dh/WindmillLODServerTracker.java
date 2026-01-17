@@ -33,7 +33,7 @@ public final class WindmillLODServerTracker {
 
 		var dimensionId = level.dimension().location().toString();
 
-		for (var entry : WindmillLODManager.entries()) {
+		for (var entry : Mod.WINDMILL_LOD_MANAGER.entries()) {
 			if (!dimensionId.equals(entry.dimensionId)) {
 				continue;
 			}
@@ -120,7 +120,7 @@ public final class WindmillLODServerTracker {
 			return;
 		}
 
-		var removed = WindmillLODManager.unregister(entry.contraptionId);
+		var removed = Mod.WINDMILL_LOD_MANAGER.unregister(entry.contraptionId);
 
 		if (!removed) {
 			return;
@@ -225,7 +225,7 @@ public final class WindmillLODServerTracker {
 		var currentTick = level.getGameTime();
 		var server = level.getServer();
 
-		for (var entry : WindmillLODManager.entries()) {
+		for (var entry : Mod.WINDMILL_LOD_MANAGER.entries()) {
 			if (!dimensionId.equals(entry.dimensionId)) {
 				continue;
 			}

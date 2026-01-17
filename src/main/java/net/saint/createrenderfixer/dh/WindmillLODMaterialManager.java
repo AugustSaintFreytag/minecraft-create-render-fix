@@ -12,24 +12,30 @@ public final class WindmillLODMaterialManager {
 
 	// Properties
 
-	private static EDhApiBlockMaterial bladeMaterial = EDhApiBlockMaterial.UNKNOWN;
-	private static Color bladeColor = Color.GREEN;
+	private EDhApiBlockMaterial bladeMaterial = EDhApiBlockMaterial.UNKNOWN;
+	private Color bladeColor = Color.GREEN;
 
 	// Access
 
-	public static EDhApiBlockMaterial getBladeMaterial() {
+	public EDhApiBlockMaterial getBladeMaterial() {
 		return bladeMaterial;
 	}
 
-	public static Color getBladeColor() {
+	public Color getBladeColor() {
 		return bladeColor;
 	}
 
 	// Mutation
 
-	public static void reloadFromConfig() {
-		bladeMaterial = DHBlockMaterialUtil.decodeBlockMaterial(Mod.CONFIG.windmillBladeMaterial);
-		bladeColor = ConfigColorUtil.decodeColor(Mod.CONFIG.windmillBladeColor, Color.GREEN);
+	public void reloadFromConfig() {
+		var config = Mod.CONFIG;
+
+		if (config == null) {
+			return;
+		}
+
+		bladeMaterial = DHBlockMaterialUtil.decodeBlockMaterial(config.windmillBladeMaterial);
+		bladeColor = ConfigColorUtil.decodeColor(config.windmillBladeColor, Color.GREEN);
 	}
 
 }

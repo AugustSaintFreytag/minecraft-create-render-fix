@@ -17,8 +17,8 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.saint.createrenderfixer.Mod;
+import net.saint.createrenderfixer.ModClient;
 import net.saint.createrenderfixer.dh.WindmillLODEntry;
-import net.saint.createrenderfixer.dh.WindmillLODManager;
 
 public final class WindmillLODSyncUtil {
 
@@ -43,22 +43,28 @@ public final class WindmillLODSyncUtil {
 			var entries = readEntries(buffer);
 
 			client.execute(() -> {
-				WindmillLODManager.loadPersistent(entries);
+				ModClient.WINDMILL_LOD_MANAGER.loadPersistent(entries);
 				Mod.LOGGER.info("Received and loaded {} windmill LOD entries client-side.", entries.size());
 			});
 		});
 
 		ClientPlayNetworking.registerGlobalReceiver(UPDATE_PACKET, (client, handler, buffer, responseSender) -> {
 			var entry = readEntry(buffer);
+			var level = client.level;
 
-			if (entry == null) {
+			if (entry == null || level == null) {
 				return;
 			}
 
+			// Override server-side decoupled game time with client-local.
+			// Assume received packet is always recent and use as if received in same time space.
+			var currentTick = level.getGameTime();
+			entry.lastSynchronizationTick = currentTick;
+
 			client.execute(() -> {
-				WindmillLODManager.register(entry);
-				Mod.LOGGER.debug("Received and updated registration for windmill LOD for contraption '{}' client-side.",
-						entry.contraptionId);
+				ModClient.WINDMILL_LOD_MANAGER.register(entry);
+				Mod.LOGGER.debug("Received and updated registration for windmill LOD for contraption '{}' client-side (tick {}).",
+						entry.contraptionId, entry.lastSynchronizationTick);
 			});
 		});
 
@@ -66,7 +72,7 @@ public final class WindmillLODSyncUtil {
 			var contraptionIdentifier = buffer.readUUID();
 
 			client.execute(() -> {
-				WindmillLODManager.unregister(contraptionIdentifier);
+				ModClient.WINDMILL_LOD_MANAGER.unregister(contraptionIdentifier);
 				Mod.LOGGER.debug("Deregistered windmill LOD for contraption '{}' client-side.", contraptionIdentifier);
 			});
 		});
@@ -232,7 +238,7 @@ public final class WindmillLODSyncUtil {
 	private static ArrayList<WindmillLODEntry> collectServerEntries() {
 		var entries = new ArrayList<WindmillLODEntry>();
 
-		for (var entry : WindmillLODManager.entries()) {
+		for (var entry : Mod.WINDMILL_LOD_MANAGER.entries()) {
 			entries.add(entry.createPersistenceSnapshot());
 		}
 

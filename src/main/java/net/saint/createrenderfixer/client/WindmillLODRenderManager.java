@@ -22,11 +22,10 @@ import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.phys.Vec3;
 import net.saint.createrenderfixer.Mod;
+import net.saint.createrenderfixer.ModClient;
 import net.saint.createrenderfixer.dh.DhBridge;
 import net.saint.createrenderfixer.dh.WindmillLODBoxUtil;
 import net.saint.createrenderfixer.dh.WindmillLODEntry;
-import net.saint.createrenderfixer.dh.WindmillLODManager;
-import net.saint.createrenderfixer.dh.WindmillLODMaterialManager;
 
 public final class WindmillLODRenderManager {
 
@@ -65,7 +64,7 @@ public final class WindmillLODRenderManager {
 
 		var activeIdentifiers = new HashSet<UUID>();
 
-		for (var entry : WindmillLODManager.entries()) {
+		for (var entry : ModClient.WINDMILL_LOD_MANAGER.entries()) {
 			if (!dimensionId.equals(entry.dimensionId)) {
 				continue;
 			}
@@ -174,11 +173,11 @@ public final class WindmillLODRenderManager {
 	}
 
 	private static Color getBladeColor() {
-		return WindmillLODMaterialManager.getBladeColor();
+		return ModClient.WINDMILL_LOD_MATERIAL_MANAGER.getBladeColor();
 	}
 
 	private static EDhApiBlockMaterial getBladeMaterial() {
-		return WindmillLODMaterialManager.getBladeMaterial();
+		return ModClient.WINDMILL_LOD_MATERIAL_MANAGER.getBladeMaterial();
 	}
 
 	private static void updateRenderGroupBoxes(IDhApiRenderableBoxGroup renderGroup, WindmillLODEntry entry, float renderAngle) {

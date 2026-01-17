@@ -12,22 +12,22 @@ public final class WindmillLODManager {
 
 	// State
 
-	private static final Map<UUID, WindmillLODEntry> ENTRIES = new ConcurrentHashMap<>();
+	private final Map<UUID, WindmillLODEntry> entries = new ConcurrentHashMap<>();
 
 	// Access
 
-	public static Iterable<WindmillLODEntry> entries() {
-		return ENTRIES.values();
+	public Iterable<WindmillLODEntry> entries() {
+		return entries.values();
 	}
 
 	// Registration
 
-	public static void register(WindmillLODEntry entry) {
+	public void register(WindmillLODEntry entry) {
 		if (entry == null) {
 			return;
 		}
 
-		var existing = ENTRIES.get(entry.contraptionId);
+		var existing = entries.get(entry.contraptionId);
 
 		if (existing != null) {
 			if (existing.matchesRegistrationData(entry)) {
@@ -39,59 +39,59 @@ public final class WindmillLODManager {
 			}
 		}
 
-		ENTRIES.put(entry.contraptionId, entry);
+		entries.put(entry.contraptionId, entry);
 	}
 
-	public static boolean unregister(UUID contraptionId) {
+	public boolean unregister(UUID contraptionId) {
 		if (contraptionId == null) {
 			return false;
 		}
 
-		return ENTRIES.remove(contraptionId) != null;
+		return entries.remove(contraptionId) != null;
 	}
 
-	public static void clearForWorld(String dimensionId) {
+	public void clearForWorld(String dimensionId) {
 		if (dimensionId == null) {
 			return;
 		}
 
-		ENTRIES.entrySet().removeIf(entry -> dimensionId.equals(entry.getValue().dimensionId));
+		entries.entrySet().removeIf(entry -> dimensionId.equals(entry.getValue().dimensionId));
 	}
 
 	@Nullable
-	public static WindmillLODEntry find(UUID contraptionId) {
+	public WindmillLODEntry find(UUID contraptionId) {
 		if (contraptionId == null) {
 			return null;
 		}
 
-		return ENTRIES.get(contraptionId);
+		return entries.get(contraptionId);
 	}
 
 	// Persistence
 
-	public static List<WindmillLODEntry> snapshotPersistent() {
-		var snapshot = new ArrayList<WindmillLODEntry>(ENTRIES.size());
+	public List<WindmillLODEntry> snapshotPersistent() {
+		var snapshot = new ArrayList<WindmillLODEntry>(entries.size());
 
-		for (var entry : ENTRIES.values()) {
+		for (var entry : entries.values()) {
 			snapshot.add(entry.createPersistenceSnapshot());
 		}
 
 		return snapshot;
 	}
 
-	public static void loadPersistent(List<WindmillLODEntry> entries) {
-		ENTRIES.clear();
+	public void loadPersistent(List<WindmillLODEntry> persistentEntries) {
+		entries.clear();
 
-		if (entries == null || entries.isEmpty()) {
+		if (persistentEntries == null || persistentEntries.isEmpty()) {
 			return;
 		}
 
-		for (var entry : entries) {
+		for (var entry : persistentEntries) {
 			if (entry == null) {
 				continue;
 			}
 
-			ENTRIES.put(entry.contraptionId, entry);
+			entries.put(entry.contraptionId, entry);
 		}
 	}
 }
