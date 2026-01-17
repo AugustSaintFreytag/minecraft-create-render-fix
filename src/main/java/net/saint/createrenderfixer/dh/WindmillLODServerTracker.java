@@ -27,7 +27,7 @@ public final class WindmillLODServerTracker {
 	private static void tickLevel(MinecraftServer server, ServerLevel level) {
 		var currentTick = level.getGameTime();
 
-		if (currentTick % Mod.CONFIG.windmillSyncTickInterval != 0) {
+		if (currentTick % Mod.CONFIG.windmillTickInterval != 0) {
 			return;
 		}
 
@@ -202,7 +202,7 @@ public final class WindmillLODServerTracker {
 			}
 		}
 
-		if (currentTick - entry.lastSynchronizationTick > Mod.CONFIG.windmillSyncTickInterval * 8) {
+		if (currentTick > entry.lastSynchronizationTick + Mod.CONFIG.windmillTickInterval) {
 			return true;
 		}
 

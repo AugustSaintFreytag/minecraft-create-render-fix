@@ -95,10 +95,8 @@ public class ModConfig implements ConfigData {
 	public String windmillBladeMaterial = "WOOD";
 
 	@ConfigEntry.Category("lods-windmill")
-
-	@ConfigEntry.Category("lods-windmill")
-	@Comment("Tick interval to synchronize active windmill LODs entries from server to client. (Default: 50)")
-	public int windmillSyncTickInterval = 50;
+	@Comment("Server-side tick interval to manage active windmill LODs entries, process updates, and broadcast entries to players in range. (Default: 20)")
+	public int windmillTickInterval = 20;
 
 	@ConfigEntry.Category("lods-windmill")
 	@Comment("Maximum rotation angle delta between server expectation and client actual to cause override. (Default: 1.0)")
