@@ -95,7 +95,7 @@ public final class WindmillLODServerTracker {
 
 			if (assertedAngle != 0f && assertedAngle != currentAngle) {
 				// If this ever logs, the bearing does not return a value it was just set to.
-				Mod.LOGGER.error("Asserted angle mismatch!");
+				Mod.LOGGER.error("Asserted angle mismatch. Set to {} but returned {}.", predictedAngle, currentAngle);
 			}
 
 			entry.isStale = false;
